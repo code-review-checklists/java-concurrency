@@ -158,7 +158,7 @@ This advice equally applies to lambdas passed into `ConcurrentHashMap`’s `comp
 See also [JCIP 11.4.1] and [EJ Item 79].
 
 <a name="increase-locking-granularity"></a>
-[#](#increase-locking-granularity) Sc.2. Is it possible to **increase locking granularity**? If a thread-safe class encapsulates accesses to map, is it possible to **turn critical sections into lambdas passed into `ConcurrentHashMap.compute()`** or `computeIfAbsent()` or `computeIfPresent()` methods to enjoy effective per-key locking granularity? Otherwise, is it possible to use [**Guava’s `Striped`](https://github.com/google/guava/wiki/StripedExplained)** or an equivalent? See [JCIP 11.4.3] for more information about lock striping.
+[#](#increase-locking-granularity) Sc.2. Is it possible to **increase locking granularity**? If a thread-safe class encapsulates accesses to map, is it possible to **turn critical sections into lambdas passed into `ConcurrentHashMap.compute()`** or `computeIfAbsent()` or `computeIfPresent()` methods to enjoy effective per-key locking granularity? Otherwise, is it possible to use **[Guava’s `Striped`](https://github.com/google/guava/wiki/StripedExplained)** or an equivalent? See [JCIP 11.4.3] for more information about lock striping.
 
 <a name="non-blocking-collections"></a>
 [#](#non-blocking-collections) Sc.3. Is it possible to **use non-blocking collections instead of blocking ones?** Here are some possible replacements within JDK:
