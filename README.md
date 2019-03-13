@@ -364,7 +364,7 @@ Note that making classes with some state in native memory thread-safe also impli
 
 <hr>
 
-## Authorship
+## Authors
 
 This checklist was originally published as a [post on Medium](https://medium.com/@leventov/code-review-checklist-java-concurrency-49398c326154).
 
