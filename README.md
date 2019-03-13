@@ -241,7 +241,7 @@ See also [EJ Item 83] and “[Safe Publication this and Safe Initialization in J
 [#](#check-non-blocking-code) NB.1. If there is some non-blocking or semi-symmetrically blocking code that mutates the state of a thread-safe class, was it deliberately checked that if a **thread on a non-blocking mutation path is preempted after each statement, the object is still in a valid state**? Are there enough comments, perhaps before almost every statement where the state is changed, to make it relatively easy for readers of the code to repeat and verify the check?
 
 <a name="swap-state-atomically"></a>
-[#](#swap-state-atomically) NB.2. Is it possible to simplify some non-blocking code by **confining all mutable state in an immutable POJO and update it via compare-and-swap operations**? This pattern is also mentioned in [RC.5](#moving-state-race). Instead of a POJO, a single long value could be used if all parts of the state are integers that can together fit 64 bits. See also [JCIP 15.3.1].
+[#](#swap-state-atomically) NB.2. Is it possible to simplify some non-blocking code by **confining all mutable state in an immutable POJO and update it via compare-and-swap operations**? This pattern is also mentioned in [RC.5](#moving-state-race). Instead of a POJO, a single `long` value could be used if all parts of the state are integers that can together fit 64 bits. See also [JCIP 15.3.1].
 
 ### Threads and Executors
 
