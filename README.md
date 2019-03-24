@@ -205,23 +205,25 @@ Was it considered to **use one of the array-based queues from [the JCTools libra
 
 If the initialized objects are immutable a more efficient [UnsafeLocalDCL](http://hg.openjdk.java.net/code-tools/jcstress/file/9270b927e00f/tests-custom/src/main/java/org/openjdk/jcstress/tests/singletons/UnsafeLocalDCL.java#l71) pattern might also be used. However, if the lazily-initialized field is not `volatile` and there are accesses to the field that bypass the initialization path, the value of the **field must be carefully cached in a local variable**. For example, the following code is buggy:
 
-    private MyClass lazilyInitializedField;
+    private MyImmutableClass lazilyInitializedField;
 
-    void cleanup() {
-      if (lazilyInitializedField != null) { // (1)
+    void doSomething() {
+      ...
+      if (lazilyInitializedField != null) {       // (1)
         // Can throw NPE!
-        lazilyInitializedField.close();     // (2)
+        lazilyInitializedField.doSomethingElse(); // (2)
       }
     }
 
-It might result in a `NullPointerException`, because although a non-null value is observed when the field is read the first time at line 1, the second read at line 2 could observe null.
+This code might result in a `NullPointerException`, because although a non-null value is observed when the field is read the first time at line 1, the second read at line 2 could observe null.
 
 The above code could be fixed as follows:
 
-    void cleanup() {
-      MyClass lazilyInitialized = this.lazilyInitializedField;
+    void doSomething() {
+      MyImmutableClass lazilyInitialized = this.lazilyInitializedField;
       if (lazilyInitialized != null) {
-        lazilyInitialized.close();
+        // Calling doSomethingElse() on a local variable
+        lazilyInitialized.doSomethingElse();
       }
     }
 
