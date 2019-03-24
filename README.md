@@ -126,6 +126,11 @@ This pattern is also very useful for crafting safe and reasonably simple non-blo
 <a name="read-outside-critical-section-race"></a>
 [#](#read-outside-critical-section-race) RC.6. If some logic within some critical section depends on some data that principally is part of the internal mutable state of the class, but was read outside of the critical section or in a different critical section, isn’t there a race condition because the **local copy of the data may become out of sync with the internal state by the time when the critical section is entered**? This is a typical variant of check-then-act race condition, see [JCIP 2.2.1].
 
+<a name="outside-world-race"></a>
+[#](#outside-world-race) RC.7. Aren't there **race conditions between the code (i. e. program runtime actions) and some actions in the outside world** or actions performed by some other programs running on the machine? For example, if some configurations or credentials are hot reloaded from some file or external registry, reading separate configuration parameters or separate credentials (such as username and password) in separate transactions with the file or the registry may be racing with a system operator updating those configurations or credentials.
+
+Another example is checking that a file exists (or not exists) and then reading, deleting, or creating it, respectively, while another program or a user may delete or create the file between the check and the act. It's not always possible to cope with such race conditions, but it's useful to keep such possibilities in mind. Prefer static methods from [`java.nio.file.Files`](https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/file/Files.html) class and NIO file reading/writing API to methods from the old `java.io.File` for file system operations. Methods from `Files` are more sensitive to file system race conditions and tend to throw exceptions in adverse cases, while methods on `File` swallow errors and make it hard even to detect race conditions. Static methods from `Files` also support `StandardOpenOption.CREATE` and `CREATE_NEW` which may help to ensure some extra atomicity.
+
 ### Replacing locks with concurrency utilities
 
 <a name="avoid-wait-notify"></a>
