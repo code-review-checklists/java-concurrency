@@ -390,10 +390,14 @@ http://cs.oswego.edu/pipermail/concurrency-interest/2018-September/016526.html).
 
 <a name="unsafe-concurrent-iteration"></a>
 [#](#unsafe-concurrent-iteration) RC.3. A variation of the previous item: isn’t a non-thread-safe
-collection such as `HashMap` or `ArrayList` **iterated outside of a critical section**, while it can
+collection such as `HashMap` or `ArrayList` **iterated outside of a critical section**, while it may
 be modified concurrently? This could happen by accident when an `Iterable`, `Iterator` or `Stream`
 over a collection is returned from a method of a thread-safe class, even though the iterator or
-stream is created within a critical section.
+stream is created within a critical section. Returning unmodifiable collection views like
+`Collections.unmodifiableList()` from getters wrapping collection fields that may be modified
+concurrently is subject to the same problem. If the collection is relatively small, it should be
+copied entirely, or a copy-on-write collection (see [Sc.3](#non-blocking-collections)) should be
+used instead of a non-thread-safe collection.
 
 Like the previous item, this one applies to growing ArrayLists too.
 
