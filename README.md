@@ -83,6 +83,8 @@ Non-blocking and partially blocking code
  ](#check-non-blocking-code)
  - [Can use immutable POJO + compare-and-swap operations to simplify non-blocking code?
  ](#swap-state-atomically)
+ - [Boundaries of non-blocking or benignly racy code are identified by WARNING comments?
+ ](#non-blocking-warning)
 
 Threads and Executors
  - [Thread is named?](#name-threads)
@@ -187,7 +189,9 @@ Javadoc comments include
 
 Wherever some logic is parallelized or the execution is delegated to another thread, are there
 comments explaining why it’s worse or inappropriate to execute the logic sequentially or in the same
-thread? See also [PS.1](#justify-parallel-stream-use).
+thread? See [PS.1](#justify-parallel-stream-use) regarding this.
+
+See also [NB.3](#non-blocking-warning) regarding justification of non-blocking and racy code.
 
 <a name="threading-flow-model"></a>
 [#](#threading-flow-model) Dc.2. If the patch introduces a new subsystem that uses threads or thread
@@ -291,6 +295,10 @@ https://errorprone.info/bugpattern/GuardedBy).
 within critical sections and outside of critical sections**, is it explained in comments why this
 is safe? For example, unprotected read-only access to a reference to an immutable object might be
 benignly racy (see [RC.5](#moving-state-race)).
+
+Apart from the explanations why the partially blocking or racy code is safe, there should also be
+comments justifying such error-prone code and warning the developers that the code should be
+modified and reviewed with double attention: see [NB.3](#non-blocking-warning).
 
 <a name="justify-volatile"></a>
 [#](#justify-volatile) Dc.9. Regarding every field with a `volatile` modifier: **does it really need
@@ -656,6 +664,16 @@ changed, to make it relatively easy for readers of the code to repeat and verify
 all mutable state in an immutable POJO and update it via compare-and-swap operations**? This pattern
 is also mentioned in [RC.5](#moving-state-race). Instead of a POJO, a single `long` value could be
 used if all parts of the state are integers that can together fit 64 bits. See also [JCIP 15.3.1].
+
+<a name="non-blocking-warning"></a>
+[#](#non-blocking-warning) NB.3. Are there **visible WARNING comments identifying the boundaries of
+non-blocking code**? The comments should mark the start and the end of non-blocking code, partially
+blocking code, benignly racy code (see [Dc.8](#document-benign-race)), or code that may be executed
+in multiple parallel threads without synchronization. The opening comments should:
+
+ 1. Justify the need for such error-prone code (which is a special case of [Dc.1](#justify-document)).
+ 2. **Warn developers that changes in the following code should be made (and reviewed) extremely
+ carefully.**
 
 ### Threads and Executors
 
