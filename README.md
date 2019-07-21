@@ -279,22 +279,33 @@ in `ConcurrentHashMap`.
 [#](#guarded-by) Dc.7. Is **`@GuardedBy` annotation used**? If accesses to some fields should be
 protected by some lock, are those fields annotated with `@GuardedBy`? Are private methods that are
 called from within critical sections in other methods annotated with `@GuardedBy`? If the project
-doesn’t depend on any library containing this annotation (it’s provided by `jcip-annotations`,
-`error_prone_annotations`, `jsr305` and other libraries) and for some reason it’s undesirable to add
-such dependency, it should be mentioned in Javadoc comments for the respective fields and methods
-that accesses and calls to them should be protected by some specified locks.
+doesn’t depend on any library containing this annotation (it’s provided by [`jcip-annotations`](
+https://search.maven.org/artifact/net.jcip/jcip-annotations/1.0/jar), [`error_prone_annotations`](
+https://search.maven.org/search?q=a:error_prone_annotations%20g:com.google.errorprone), [`jsr305`](
+https://search.maven.org/search?q=g:com.google.code.findbugs%20a:jsr305), and other libraries) and
+for some reason it’s undesirable to add such dependency, it should be mentioned in Javadoc comments
+for the respective fields and methods that accesses and calls to them should be protected by some
+specified locks.
 
 See [JCIP 2.4] for more information about `@GuardedBy`.
 
-Using `@GuardedBy` is especially beneficial in together with Error Prone, which is able to
-[statically check for unguarded accesses to fields and methods with @GuardedBy annotations](
-https://errorprone.info/bugpattern/GuardedBy).
+Usage of `@GuardedBy` is especially beneficial in conjuction with [Error Prone](
+https://errorprone.info/) tool which is able to [statically check for unguarded accesses to fields
+and methods with @GuardedBy annotations](https://errorprone.info/bugpattern/GuardedBy).
 
 <a name="document-benign-race"></a>
 [#](#document-benign-race) Dc.8. If in a thread-safe class some **fields are accessed both from
 within critical sections and outside of critical sections**, is it explained in comments why this
 is safe? For example, unprotected read-only access to a reference to an immutable object might be
 benignly racy (see [RC.5](#moving-state-race)).
+
+Instead of writing a comment explaining that access to a lazily initialized field outside of a
+critical section is safe, the field could just be annotated with [`@LazyInit`](
+http://errorprone.info/api/latest/com/google/errorprone/annotations/concurrent/LazyInit.html) from
+[`error_prone_annotations`](
+https://search.maven.org/search?q=a:error_prone_annotations%20g:com.google.errorprone) (but make sure
+to read the Javadoc for this annotation and to check that the field conforms to the description;
+[LI.3](#safe-local-dcl) and [LI.5](#lazy-init-benign-race) mention potential pitfalls).
 
 Apart from the explanations why the partially blocking or racy code is safe, there should also be
 comments justifying such error-prone code and warning the developers that the code should be
@@ -306,6 +317,10 @@ to be `volatile`**? Does the Javadoc comment for the field explain why the seman
 field reads and writes (as defined in the [Java Memory Model](
 https://docs.oracle.com/javase/specs/jls/se11/html/jls-17.html#jls-17.4)) are required for the
 field?
+
+Similarly to what is noted in the previous item, justification for a lazily initialized field to be
+`volatile` could be omitted if the lazy initialization pattern itself is identified, according to
+[Dc.4](#name-patterns).
 
 <a name="plain-field"></a>
 [#](#plain-field) Dc.10. Is it explained in the **Javadoc comment for each mutable field in a
@@ -587,6 +602,9 @@ because they take less memory than `LongAdder` and their updates are cheaper.
 <a name="lazy-init"></a>
 ### Lazy initialization and double-checked locking
 
+Regarding all items in this section, see also [EJ Item 83] and "[Safe Publication this and Safe
+Initialization in Java](https://shipilev.net/blog/2014/safe-public-construction/)".
+
 <a name="lazy-init-thread-safety"></a>
 [#](#lazy-init-thread-safety) LI.1. For every lazily initialized field: **is the initialization code
 thread-safe and might it be called from multiple threads concurrently?** If the answers are "no" and
@@ -612,8 +630,7 @@ carefully cached in a local variable**. For example, the following code is buggy
     void doSomething() {
       ...
       if (lazilyInitializedField != null) {       // (1)
-        // Can throw NPE!
-        lazilyInitializedField.doSomethingElse(); // (2)
+        lazilyInitializedField.doSomethingElse(); // (2) - Can throw NPE!
       }
     }
 
@@ -625,14 +642,16 @@ The above code could be fixed as follows:
     void doSomething() {
       MyImmutableClass lazilyInitialized = this.lazilyInitializedField;
       if (lazilyInitialized != null) {
-        // Calling doSomethingElse() on a local variable
+        // Calling doSomethingElse() on a local variable to avoid NPE:
+        // see https://github.com/code-review-checklists/java-concurrency#safe-local-dcl
         lazilyInitialized.doSomethingElse();
       }
     }
 
 See "[Wishful Thinking: Happens-Before Is The Actual Ordering](
-https://shipilev.net/blog/2016/close-encounters-of-jmm-kind/#wishful-hb-actual)" for more
-information.
+https://shipilev.net/blog/2016/close-encounters-of-jmm-kind/#wishful-hb-actual)" and
+"[Date-Race-Ful Lazy Initialization for Performance](
+http://jeremymanson.blogspot.com/2008/12/benign-data-races-in-java.html)" for more information.
 
 <a name="eager-init"></a>
 [#](#eager-init) LI.4. In each particular case, doesn’t the **net impact of double-checked locking
@@ -645,10 +664,8 @@ double-checked locking, does it really need locking? If nothing bad may happen i
 initialization at the same time and use different copies of the initialized state then a benign race
 could be allowed. The initialized field should still be `volatile` (unless the initialized objects
 are immutable) to ensure there is a happens-before edge between threads doing the initialization and
-reading the field.
-
-See also [EJ Item 83] and "[Safe Publication this and Safe Initialization in Java](
-https://shipilev.net/blog/2014/safe-public-construction/)".
+reading the field. This is called *a single-check idiom* (or *a racy single-check idiom* if the field
+doesn't have a `volatile` modifier) in [EJ Item 83].
 
 ### Non-blocking and partially blocking code
 
