@@ -72,11 +72,13 @@ Lazy initialization and double-checked locking
  - [Lazy initialization of a field should be thread-safe?](#lazy-init-thread-safety)
  - [Considered double-checked locking for a lazy initialization to improve performance?
  ](#use-dcl)
- - [Considered eager initialization instead of a lazy initialization to simplify code?
-  ](#eager-init)
  - [Double-checked locking follows the SafeLocalDCL pattern?](#safe-local-dcl)
+  - [Considered eager initialization instead of a lazy initialization to simplify code?
+  ](#eager-init)
  - [Can do lazy initialization with a benign race and without locking to improve performance?
  ](#lazy-init-benign-race)
+ - [Holder class idiom is used for lazy static fields rather than double-checked locking?
+ ](#no-static-dsl)
 
 Non-blocking and partially blocking code
  - [Non-blocking code has enough comments to make line-by-line checking as easy as possible?
@@ -236,6 +238,11 @@ design patterns, either high-level (such as those mentioned in [Dn.2](#use-patte
 patterns pronounced in the design or implementation comments** for the respective subsystems,
 classes, methods, and fields? This helps readers to make sense out of the code quicker.
 
+Pronouncing the used patterns in comments may be replaced with more succinct documentation annotations,
+such as `@Immutable` ([Dc.3](#immutable-thread-safe)), `@GuardedBy` ([Dc.7](#guarded-by)), `@LazyInit`
+([LI.5](#lazy-init-benign-race)), or annotations that you define yourself for specific patterns which
+appear many times in your project.
+
 <a name="concurrent-map-type"></a>
 [#](#concurrent-map-type) Dc.5. Are `ConcurrentHashMap` and `ConcurrentSkipListMap` objects stored
 in fields and variables of `ConcurrentHashMap` or `ConcurrentSkipListMap` or **`ConcurrentMap`
@@ -299,7 +306,7 @@ within critical sections and outside of critical sections**, is it explained in 
 is safe? For example, unprotected read-only access to a reference to an immutable object might be
 benignly racy (see [RC.5](#moving-state-race)).
 
-Instead of writing a comment explaining that access to a lazily initialized field outside of a
+Instead of writing a comment explaining that access to a *lazily initialized field* outside of a
 critical section is safe, the field could just be annotated with [`@LazyInit`](
 http://errorprone.info/api/latest/com/google/errorprone/annotations/concurrent/LazyInit.html) from
 [`error_prone_annotations`](
@@ -666,6 +673,19 @@ could be allowed. The initialized field should still be `volatile` (unless the i
 are immutable) to ensure there is a happens-before edge between threads doing the initialization and
 reading the field. This is called *a single-check idiom* (or *a racy single-check idiom* if the field
 doesn't have a `volatile` modifier) in [EJ Item 83].
+
+Annotate such fields with [`@LazyInit`](
+http://errorprone.info/api/latest/com/google/errorprone/annotations/concurrent/LazyInit.html) from
+[`error_prone_annotations`](
+https://search.maven.org/search?q=a:error_prone_annotations%20g:com.google.errorprone).
+
+<a name="no-static-dcl"></a>
+[#](#no-static-dcl) LI.6. Is **[lazy initialization holder class idiom](
+https://en.wikipedia.org/wiki/Initialization-on-demand_holder_idiom) used for static fields which must
+be lazy rather than double-checked locking?** There are no reasons to use double-checked locking for
+static fields because lazy initialization holder class idiom is simpler, harder to make mistake in,
+and is at least as efficient as double-checked locking (see benchmark results in "[Safe Publication
+and Safe Initialization in Java](https://shipilev.net/blog/2014/safe-public-construction/)).
 
 ### Non-blocking and partially blocking code
 
