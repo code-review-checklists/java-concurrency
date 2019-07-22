@@ -78,7 +78,7 @@ Lazy initialization and double-checked locking
  - [Can do lazy initialization with a benign race and without locking to improve performance?
  ](#lazy-init-benign-race)
  - [Holder class idiom is used for lazy static fields rather than double-checked locking?
- ](#no-static-dsl)
+ ](#no-static-dcl)
 
 Non-blocking and partially blocking code
  - [Non-blocking code has enough comments to make line-by-line checking as easy as possible?
