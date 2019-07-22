@@ -154,9 +154,9 @@ still use older copies or snapshots. See [EJ Item 17], [JCIP 3.4], [RC.5](#movin
 structures](https://en.wikipedia.org/wiki/Persistent_data_structure).
 
 **Divide and conquer.** Work is split into several parts that are processed independently, each part
-in a single thread. Then the results of processing are combined. [Parallel Streams
-](#parallel-streams) or `ForkJoinPool` (see [TE.4](#fjp-no-blocking) and [TE.5](#use-common-fjp))
-can be used to apply this pattern.
+in a single thread. Then the results of processing are combined. [Parallel
+Streams](#parallel-streams) or `ForkJoinPool` (see [TE.4](#fjp-no-blocking) and
+[TE.5](#use-common-fjp)) can be used to apply this pattern.
 
 **Producer-consumer.** Pieces of work are transmitted between worker threads via queues. See
 [JCIP 5.3], [Dl.1](#avoid-nested-critical-sections), [CSP](
@@ -228,8 +228,8 @@ themselves) they may be called concurrently from multiple threads? See also [EJ 
 
 If the `@com.google.errorprone.annotations.Immutable` annotation is used to mark immutable classes,
 [Error Prone](https://errorprone.info/) static analysis tool is capable to detect when a class is
-not actually immutable (see a relevant [bug pattern
-](https://errorprone.info/bugpattern/Immutable)).
+not actually immutable (see a relevant [bug
+pattern](https://errorprone.info/bugpattern/Immutable)).
 
 <a name="name-patterns"></a>
 [#](#name-patterns) Dc.4. For subsystems, classes, methods, and fields that use some concurrency
@@ -238,10 +238,10 @@ design patterns, either high-level (such as those mentioned in [Dn.2](#use-patte
 patterns pronounced in the design or implementation comments** for the respective subsystems,
 classes, methods, and fields? This helps readers to make sense out of the code quicker.
 
-Pronouncing the used patterns in comments may be replaced with more succinct documentation annotations,
-such as `@Immutable` ([Dc.3](#immutable-thread-safe)), `@GuardedBy` ([Dc.7](#guarded-by)), `@LazyInit`
-([LI.5](#lazy-init-benign-race)), or annotations that you define yourself for specific patterns which
-appear many times in your project.
+Pronouncing the used patterns in comments may be replaced with more succinct documentation
+annotations, such as `@Immutable` ([Dc.3](#immutable-thread-safe)), `@GuardedBy`
+([Dc.7](#guarded-by)), `@LazyInit` ([LI.5](#lazy-init-benign-race)), or annotations that you define
+yourself for specific patterns which appear many times in your project.
 
 <a name="concurrent-map-type"></a>
 [#](#concurrent-map-type) Dc.5. Are `ConcurrentHashMap` and `ConcurrentSkipListMap` objects stored
@@ -258,10 +258,10 @@ This is important, because in code like the following:
     }
 
 It should be pretty obvious that there might be a race condition because an entity may be put into
-the map by a concurrent thread between the calls to `containsKey()` and `put()` (see [RC.1
-](#chm-race) about this type of race conditions). While if the type of the entities variable was
-just `Map<String, Entity>` it would be less obvious and readers might think this is only slightly
-suboptimal code and pass by.
+the map by a concurrent thread between the calls to `containsKey()` and `put()` (see
+[RC.1](#chm-race) about this type of race conditions). While if the type of the entities variable
+was just `Map<String, Entity>` it would be less obvious and readers might think this is only
+slightly suboptimal code and pass by.
 
 It’s possible to turn this advice into [an inspection](
 https://github.com/apache/incubator-druid/pull/6898/files#diff-3aa5d63fbb1f0748c146f88b6f0efc81R239)
@@ -310,9 +310,9 @@ Instead of writing a comment explaining that access to a *lazily initialized fie
 critical section is safe, the field could just be annotated with [`@LazyInit`](
 http://errorprone.info/api/latest/com/google/errorprone/annotations/concurrent/LazyInit.html) from
 [`error_prone_annotations`](
-https://search.maven.org/search?q=a:error_prone_annotations%20g:com.google.errorprone) (but make sure
-to read the Javadoc for this annotation and to check that the field conforms to the description;
-[LI.3](#safe-local-dcl) and [LI.5](#lazy-init-benign-race) mention potential pitfalls).
+https://search.maven.org/search?q=a:error_prone_annotations%20g:com.google.errorprone) (but make
+sure to read the Javadoc for this annotation and to check that the field conforms to the
+description; [LI.3](#safe-local-dcl) and [LI.5](#lazy-init-benign-race) mention potential pitfalls).
 
 Apart from the explanations why the partially blocking or racy code is safe, there should also be
 comments justifying such error-prone code and warning the developers that the code should be
@@ -333,8 +333,8 @@ Similarly to what is noted in the previous item, justification for a lazily init
 [#](#plain-field) Dc.10. Is it explained in the **Javadoc comment for each mutable field in a
 thread-safe class that is neither `volatile` nor annotated with `@GuardedBy`**, why that is safe?
 Perhaps, the field is only accessed and mutated from a single method or a set of methods that are
-specified to be called only from a single thread sequentially (described as per [Dc.1
-](#justify-document)). This recommendation also applies to `final` fields that store objects of
+specified to be called only from a single thread sequentially (described as per
+[Dc.1](#justify-document)). This recommendation also applies to `final` fields that store objects of
 non-thread-safe classes when those objects could be mutated from some methods of the enclosing
 thread-safe class. See [RC.2](#unsafe-concurrent-point-read), [RC.3](#unsafe-concurrent-iteration),
 [RC.4](#concurrent-mutation-race) about what could go wrong with such code.
@@ -372,8 +372,8 @@ See also [the section about double-checked locking](#lazy-init).
 <a name="redundant-atomics"></a>
 [#](#redundant-atomics) ETS.2. Aren’t there **`AtomicReference`, `AtomicBoolean`, `AtomicInteger` or
 `AtomicLong` fields on which only `get()` and `set()` methods are called?** Simple fields with
-`volatile` modifiers can be used instead, but `volatile` might not be needed too; see [Dc.9
-](#justify-volatile).
+`volatile` modifiers can be used instead, but `volatile` might not be needed too; see
+[Dc.9](#justify-volatile).
 
 <a name="unneeded-thread-safety"></a>
 [#](#unneeded-thread-safety) ETS.3. **Does a class (method) need to be thread-safe?** May a class
@@ -381,7 +381,7 @@ be accessed (method called) concurrently from multiple threads (without *happens
 relationships between the accesses or calls) Can a class (method) be simplified by making it
 non-thread-safe?
 
-See also [Dc.](#justify-volatile) about potentially unneeded `volatile` modifiers. 
+See also [Dc.9](#justify-volatile) about potentially unneeded `volatile` modifiers. 
 
 This item is a close relative of [Dn.1](#rationalize) (about rationalizing concurrency and thread
 safety in the patch description) and [Dc.1](#justify-document) (about justifying concurrency in
@@ -671,8 +671,8 @@ double-checked locking, does it really need locking? If nothing bad may happen i
 initialization at the same time and use different copies of the initialized state then a benign race
 could be allowed. The initialized field should still be `volatile` (unless the initialized objects
 are immutable) to ensure there is a happens-before edge between threads doing the initialization and
-reading the field. This is called *a single-check idiom* (or *a racy single-check idiom* if the field
-doesn't have a `volatile` modifier) in [EJ Item 83].
+reading the field. This is called *a single-check idiom* (or *a racy single-check idiom* if the
+field doesn't have a `volatile` modifier) in [EJ Item 83].
 
 Annotate such fields with [`@LazyInit`](
 http://errorprone.info/api/latest/com/google/errorprone/annotations/concurrent/LazyInit.html) from
@@ -681,11 +681,12 @@ https://search.maven.org/search?q=a:error_prone_annotations%20g:com.google.error
 
 <a name="no-static-dcl"></a>
 [#](#no-static-dcl) LI.6. Is **[lazy initialization holder class idiom](
-https://en.wikipedia.org/wiki/Initialization-on-demand_holder_idiom) used for static fields which must
-be lazy rather than double-checked locking?** There are no reasons to use double-checked locking for
-static fields because lazy initialization holder class idiom is simpler, harder to make mistake in,
-and is at least as efficient as double-checked locking (see benchmark results in "[Safe Publication
-and Safe Initialization in Java](https://shipilev.net/blog/2014/safe-public-construction/)").
+https://en.wikipedia.org/wiki/Initialization-on-demand_holder_idiom) used for static fields which
+must be lazy rather than double-checked locking?** There are no reasons to use double-checked
+locking for static fields because lazy initialization holder class idiom is simpler, harder to make
+mistake in, and is at least as efficient as double-checked locking (see benchmark results in "[Safe
+Publication and Safe Initialization in
+Java](https://shipilev.net/blog/2014/safe-public-construction/)").
 
 ### Non-blocking and partially blocking code
 
@@ -708,7 +709,8 @@ non-blocking code**? The comments should mark the start and the end of non-block
 blocking code, benignly racy code (see [Dc.8](#document-benign-race)), or code that may be executed
 in multiple parallel threads without synchronization. The opening comments should:
 
- 1. Justify the need for such error-prone code (which is a special case of [Dc.1](#justify-document)).
+ 1. Justify the need for such error-prone code (which is a special case of
+ [Dc.1](#justify-document)).
  2. **Warn developers that changes in the following code should be made (and reviewed) extremely
  carefully.**
 
