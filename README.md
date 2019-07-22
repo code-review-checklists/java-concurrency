@@ -685,7 +685,7 @@ https://en.wikipedia.org/wiki/Initialization-on-demand_holder_idiom) used for st
 be lazy rather than double-checked locking?** There are no reasons to use double-checked locking for
 static fields because lazy initialization holder class idiom is simpler, harder to make mistake in,
 and is at least as efficient as double-checked locking (see benchmark results in "[Safe Publication
-and Safe Initialization in Java](https://shipilev.net/blog/2014/safe-public-construction/)).
+and Safe Initialization in Java](https://shipilev.net/blog/2014/safe-public-construction/)").
 
 ### Non-blocking and partially blocking code
 
