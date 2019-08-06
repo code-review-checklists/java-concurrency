@@ -46,6 +46,12 @@ Race conditions
  ](#outside-world-race)
  - [No race conditions are possible on the file system?](#outside-world-race)
 
+Testing
+ - [Unit tests for thread-safe classes are multi-threaded?](#multi-threaded-tests)
+ - [A shared `Random` instance is *not* used from concurrent test workers?](#concurrent-test-random)
+ - [Concurrent test workers coordinate their start?](#coordinate-test-workers)
+ - [There are more test threads than CPUs if possible for the test?](#test-workers-interleavings)
+
 Replacing locks with concurrency utilities
  - [Can use concurrency utility instead of `Object.wait()`/`notify()`?](#avoid-wait-notify)
  - [Can use Guava’s `Monitor` instead of a standard lock with conditional waits?](#guava-monitor)
@@ -474,6 +480,34 @@ Methods from `Files` are more sensitive to file system race conditions and tend 
 in adverse cases, while methods on `File` swallow errors and make it hard even to detect race
 conditions. Static methods from `Files` also support `StandardOpenOption.CREATE` and `CREATE_NEW`
 which may help to ensure some extra atomicity.
+
+### Testing
+
+<a name="multi-threaded-tests"></a>
+[#](#multi-threaded-tests) T.1. **Are unit tests for thread-safe classes multi-threaded?**
+Single-threaded tests don't really test the thread-safety and concurrency.
+
+<a name="concurrent-test-random"></a>
+[#](#concurrent-test-random) T.2. **Isn't a shared `java.util.Random` object used for data
+generation in a concurrency test?** `java.util.Random` is synchronized internally, so if multiple
+test threads (which are conceived to access the tested class concurrently) access the same
+`java.util.Random` object then the test might degenerate to a mostly synchronous one and fail to
+exercise the concurrency properties of the tested class. See [JCIP 12.1.3]. `Math.random()` is a
+subject for this problem too because internally `Math.random()` uses a globally shared
+`java.util.Random` instance. Use `ThreadLocalRandom` instead. 
+
+<a name="coordinate-test-workers"></a>
+[#](#coordinate-test-workers) T.3. Do **concurrent test workers coordinate their start using a latch
+such as `CountDownLatch`?** If they don't much or even all of the test work might be done by the
+first few started workers. See [JCIP 12.1.3] for more information.
+
+<a name="test-workers-interleavings"></a>
+[#](#test-workers-interleavings) T.4. Are there **more test threads than there are available
+processors** if possible for the test? This will help to generate more thread scheduling
+interleavings and thus test the logic for the absence of race conditions more thoroughly. See
+[JCIP 12.1.6] for more information. The number of available processors on the machine can be
+obtained as [`Runtime.getRuntime().availableProcessors()`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Runtime.html#availableProcessors()).
 
 ### Replacing locks with concurrency utilities
 
@@ -948,7 +982,7 @@ https://github.com/policeman-tools/forbidden-apis) configured for the project an
 `Random` are thread-safe and all their methods are synchronized, which is never useful in practice
 and only inhibits the performance. In OpenJDK, `Math.random()` delegates to a global static `Random`
 instance. `StringBuilder` should be used instead of `StringBuffer`, `ThreadLocalRandom` or
-`SplittableRandom` should be used instead of `Random`.
+`SplittableRandom` should be used instead of `Random` (see also [T.2](#concurrent-test-random)).
 
 ## Reading List
 
