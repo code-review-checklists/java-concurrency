@@ -1002,6 +1002,14 @@ instance. `StringBuilder` should be used instead of `StringBuffer`, `ThreadLocal
  written by Doug Lea, with the help of Brian Goetz, Paul Sandoz, Aleksey Shipilev, Heinz Kabutz,
  Joe Bowbeer, …
 
+## Concurrency checklists for other programming langugages
+
+ - C++: [Concurrency and parallelism](
+ http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#cp-concurrency-and-parallelism) section
+ in C++ Core Guidelines.
+ - Go: [Concurrency](https://golang.org/doc/effective_go.html#concurrency) section in *Effective
+ Go*.
+
 <hr>
 
 ## Authors
