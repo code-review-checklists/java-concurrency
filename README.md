@@ -333,7 +333,11 @@ field?
 
 Similarly to what is noted in the previous item, justification for a lazily initialized field to be
 `volatile` could be omitted if the lazy initialization pattern itself is identified, according to
-[Dc.4](#name-patterns).
+[Dc.4](#name-patterns).  When `volatile` on a field is needed to ensure *safe publication* of
+objects written into it (see [JCIP 3.5] or [here](
+https://shipilev.net/blog/2014/safe-public-construction/#_safe_publication)), then just mentioning
+"safe publication" in the Javadoc comment for the field is sufficient, it's not needed to elaborate
+the semantics of `volatile` which ensure the safe publication.
 
 <a name="plain-field"></a>
 [#](#plain-field) Dc.10. Is it explained in the **Javadoc comment for each mutable field in a
