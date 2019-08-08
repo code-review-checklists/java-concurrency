@@ -29,6 +29,7 @@ Excessive thread safety
  - [No "extra" (pseudo) thread safety?](#pseudo-safety)
  - [No atomics on which only `get()` and `set()` are called?](#redundant-atomics)
  - [Class (method) needs to be thread-safe?](#unneeded-thread-safety)
+ - [`ReentrantLock` (`ReentrantReadWriteLock`, `Semaphore`) needs to be fair?](#unneeded-fairness)
 
 Race conditions
  - [No `put()` or `remove()` calls on a `ConcurrentHashMap` after `get()` or `containsKey()`?
@@ -55,6 +56,7 @@ Testing
 Replacing locks with concurrency utilities
  - [Can use concurrency utility instead of `Object.wait()`/`notify()`?](#avoid-wait-notify)
  - [Can use Guava’s `Monitor` instead of a standard lock with conditional waits?](#guava-monitor)
+ - [Can use `synchronized` instead of a `ReentrantLock`?](#use-synchronized)
 
 Avoiding deadlocks
  - [Can avoid nested critical sections?](#avoid-nested-critical-sections)
@@ -388,7 +390,7 @@ See also [the section about double-checked locking](#lazy-init).
 <a name="unneeded-thread-safety"></a>
 [#](#unneeded-thread-safety) ETS.3. **Does a class (method) need to be thread-safe?** May a class
 be accessed (method called) concurrently from multiple threads (without *happens-before*
-relationships between the accesses or calls) Can a class (method) be simplified by making it
+relationships between the accesses or calls)? Can a class (method) be simplified by making it
 non-thread-safe?
 
 See also [Dc.9](#justify-volatile) about potentially unneeded `volatile` modifiers. 
@@ -402,6 +404,13 @@ supposed to be accessed or called concurrently as of the moment of the patch. Fo
 safety may be needed to ensure memory safety (see [CN.4](#thread-safe-native) about this).
 Anticipating some changes to the codebase that make the class (method) being accessed from multiple
 threads may be another reason to make the class (method) thread-safe up front.
+
+<a name="unneeded-fairness"></a>
+[#](#unneeded-fairness) ETS.4. **Does a `ReentrantLock` (or `ReentrantReadWriteLock`, `Semaphore`)
+need to be fair?** To justify the throughput penalty of making a lock fair it should be demonstrated
+that a lack of fairness leads to unacceptably long starvation periods in some threads trying to
+acquire the lock or pass the semaphore. This should be documented in the Javadoc comment for the
+field holding the lock or the semaphore. See [JCIP 13.3] for more details.
 
 ### Race conditions
 
@@ -528,6 +537,18 @@ error-prone than code implementing the equivalent logic with intrinsic locks, `O
 objects with conditional waits by using Guava’s [`Monitor`](
 https://google.github.io/guava/releases/27.0.1-jre/api/docs/com/google/common/util/concurrent/Monitor.html)
 instead**?
+
+<a name="use-synchronized"></a>
+[#](#use-synchronized) Lk.3. **Isn't `ReentrantLock` used when `synchronized` would suffice?** The
+title of this section, "Replacing locks with concurrency utilities", shouldn't be taken as far as
+using `ReentrantLock` in the situations when none of its distinctive features (`tryLock()`, timed
+and interruptible locking methods, etc.) is used. Note that reentrancy is *not* such a feature:
+intrinsic Java locks support reentrancy too. The ability for a `ReentrantLock` to be fair is seldom
+such a feature: see [ETS.4](#unneeded-fairness). See [JCIP 13.4] for more information about this.
+
+This advice also applies when a class uses a private lock object (instead of `synchronized (this)`
+or synchronized methods) to protect against accidental or malicious interference by the clients
+acquiring synchronizing on the object of the class (see [JCIP 4.2.1]).
 
 ### Avoiding deadlocks
 
