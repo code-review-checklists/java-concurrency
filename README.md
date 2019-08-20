@@ -63,6 +63,7 @@ Avoiding deadlocks
  - [Locking order for nested critical sections is documented?](#document-locking-order)
  - [Dynamically determined locks for nested critical sections are ordered?](#dynamic-lock-ordering)
  - [No extension API calls within critical sections?](#non-open-call)
+ - [No nested calls to `ConcurrentHashMap` methods on the same map?](#chm-nested-calls)
 
 Improving scalability
  - [Critical section is as small as possible?](#minimize-critical-sections)
@@ -583,6 +584,22 @@ the logic of the project, where some more locks may be acquired, potentially for
 that might lead to deadlock. Let alone the external logic could just perform some time-consuming
 operation and by that harm the efficiency of the system (see [Sc.1](#minimize-critical-sections)).
 See [JCIP 10.1.3] and [EJ Item 79] for more information.
+
+<a name="chm-nested-calls"></a>
+[#](#chm-nested-calls) Dl.5. Aren't there **calls to methods on a `ConcurrentHashMap` instance
+within lambdas passed into `compute()`-like methods called on the same map?** For example, the
+following code is deadlock-prone:
+```java
+map.compute(k, (k, v) -> {
+  if (v == null || v == 0) {
+    return map.get(DEFAULT_KEY);
+  }
+  return v;
+});
+```
+Note that nested calls to non-lambda accepting methods, *including read-only access methods like
+`get()`* create the possibility of deadlocks as well as nested calls to `compute()`-like methods
+because the former are not always lock-free. 
 
 ### Improving scalability
 
