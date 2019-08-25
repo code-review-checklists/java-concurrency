@@ -32,8 +32,8 @@ Excessive thread safety
  - [`ReentrantLock` (`ReentrantReadWriteLock`, `Semaphore`) needs to be fair?](#unneeded-fairness)
 
 Race conditions
- - [No `put()` or `remove()` calls on a `ConcurrentHashMap` after `get()` or `containsKey()`?
- ](#chm-race)
+ - [No `put()` or `remove()` calls on a `ConcurrentMap` (or Cache) after `get()` or
+ `containsKey()`?](#chm-race)
  - [No point accesses to a non-thread-safe collection outside of critical sections?
  ](#unsafe-concurrent-point-read)
  - [Iteration over a non-thread-safe collection doesn't leak outside of a critical section?
@@ -76,6 +76,8 @@ Improving scalability
  ](#use-stamped-lock)
  - [Considered `LongAdder` instead of an `AtomicLong` for a "hot field"?
  ](#long-adder-for-hot-fields)
+ - [Considered queues from JCTools instead of JDK's concurrent queues?](#jctools)
+ - [Considered Caffeine cache instead of other caching libraries?](#caffeine)
 
 Lazy initialization and double-checked locking
  - [Lazy initialization of a field should be thread-safe?](#lazy-init-thread-safety)
@@ -416,8 +418,8 @@ field holding the lock or the semaphore. See [JCIP 13.3] for more details.
 ### Race conditions
 
 <a name="chm-race"></a>
-[#](#chm-race) RC.1. Aren’t **`ConcurrentHashMaps` updated with multiple separate `containsKey()`,
-`get()`, `put()` and `remove()` calls** instead of a single call to
+[#](#chm-race) RC.1. Aren’t **`ConcurrentMap` (or Cache) objects updated with separate
+`containsKey()`, `get()`, `put()` and `remove()` calls** instead of a single call to
 `compute()`/`computeIfAbsent()`/`computeIfPresent()`/`replace()`?
 
 <a name="unsafe-concurrent-point-read"></a>
@@ -643,10 +645,8 @@ blocking ones?** Here are some possible replacements within JDK:
  - `LinkedBlockingQueue` → `ConcurrentLinkedQueue`
  - `LinkedBlockingDeque` → `ConcurrentLinkedDeque`
 
-Was it considered to **use one of the array-based queues from [the JCTools library](
-https://www.baeldung.com/java-concurrency-jc-tools) instead of `ArrayBlockingQueue`**? Those queues
-from JCTools are classified as blocking, but they avoid lock acquisition in many cases and are
-generally much faster than `ArrayBlockingQueue`.
+Also consider using queues from JCTools instead of concurrent queues from the JDK: see
+[Sc.8](#jctools).
 
 <a name="use-class-value"></a>
 [#](#use-class-value) Sc.4. Is it possible to **use [`ClassValue`](
@@ -686,6 +686,21 @@ Note that a field should be really updated from several concurrent threads stead
 updating threads, but each of them accesses the field infrequently, so the updates from different
 threads rarely happen at the same time) it's still better to use `AtomicLong` or `AtomicInteger`
 because they take less memory than `LongAdder` and their updates are cheaper.
+
+<a name="jctools"></a>
+[#](#jctools) Sc.8. Was it considered to **use one of the array-based queues from [the JCTools
+library](https://www.baeldung.com/java-concurrency-jc-tools) instead of `ArrayBlockingQueue`**?
+Those queues from JCTools are classified as blocking, but they avoid lock acquisition in many cases
+and are generally much faster than `ArrayBlockingQueue`.
+
+See also [Sc.3](#non-blocking-collections) regarding replacing blocking queues (and other
+collections) with non-blocking equivalents within JDK.
+
+<a name="caffeine"></a>
+[#](#caffeine) Sc.9. Was it considered to **use [Caffeine](https://github.com/ben-manes/caffeine)
+cache instead of other Cache implementations (such from Guava)**? [Caffeine's performance](
+https://github.com/ben-manes/caffeine/wiki/Benchmarks) is very good compared to other caching
+libraries.
 
 <a name="lazy-init"></a>
 ### Lazy initialization and double-checked locking
