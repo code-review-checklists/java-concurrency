@@ -11,7 +11,7 @@ Design
    - Thread/Task/Serial thread confinement
 
 Documentation
- - [Thread-safety is justified in comments?](#justify-document)
+ - [Thread safety is justified in comments?](#justify-document)
  - [Class (method, field) has concurrent access documentation?](#justify-document)
  - [Threading model of a subsystem (class) is described?](#threading-flow-model)
  - [Concurrent control flow (or data flow) of a subsystem (class) is described?
@@ -499,7 +499,7 @@ which may help to ensure some extra atomicity.
 
 <a name="multi-threaded-tests"></a>
 [#](#multi-threaded-tests) T.1. **Are unit tests for thread-safe classes multi-threaded?**
-Single-threaded tests don't really test the thread-safety and concurrency.
+Single-threaded tests don't really test the thread safety and concurrency.
 
 <a name="concurrent-test-random"></a>
 [#](#concurrent-test-random) T.2. **Isn't a shared `java.util.Random` object used for data
