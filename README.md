@@ -17,7 +17,7 @@ Documentation
  - [Concurrent control flow (or data flow) of a subsystem (class) is described?
  ](#threading-flow-model)
  - [Class is documented as immutable, thread-safe, or not thread-safe?](#immutable-thread-safe)
- - [Applied concurrency patterns are pronounced?](#name-patterns)
+ - [Used concurrency patterns are pronounced?](#name-patterns)
  - [`ConcurrentHashMap` is *not* stored in a variable of `Map` type?](#concurrent-map-type)
  - [`compute()`-like methods are *not* called on a variable of `ConcurrentMap` type?](#chm-type)
  - [`@GuardedBy` annotation is used?](#guarded-by)
@@ -63,7 +63,7 @@ Avoiding deadlocks
  - [Locking order for nested critical sections is documented?](#document-locking-order)
  - [Dynamically determined locks for nested critical sections are ordered?](#dynamic-lock-ordering)
  - [No extension API calls within critical sections?](#non-open-call)
- - [No nested calls to `ConcurrentHashMap` methods on the same map?](#chm-nested-calls)
+ - [No nested calls to `ConcurrentHashMap`'s methods on the same map?](#chm-nested-calls)
 
 Improving scalability
  - [Critical section is as small as possible?](#minimize-critical-sections)
@@ -94,7 +94,7 @@ Non-blocking and partially blocking code
  ](#check-non-blocking-code)
  - [Can use immutable POJO + compare-and-swap operations to simplify non-blocking code?
  ](#swap-state-atomically)
- - [Boundaries of non-blocking or benignly racy code are identified by WARNING comments?
+ - [Boundaries of non-blocking or benignly racy code are identified with WARNING comments?
  ](#non-blocking-warning)
 
 Threads and Executors
@@ -584,6 +584,11 @@ the logic of the project, where some more locks may be acquired, potentially for
 that might lead to deadlock. Let alone the external logic could just perform some time-consuming
 operation and by that harm the efficiency of the system (see [Sc.1](#minimize-critical-sections)).
 See [JCIP 10.1.3] and [EJ Item 79] for more information.
+
+When public API or extension interface calls happen within lambdas passed into `Map.compute()`,
+`computeIfAbsent()`, `computeIfPresent()`, and `merge()`, there is a risk of not only deadlocks (see
+the next item) but also race conditions which can result in a corrupted map (if it's not a
+`ConcurrentHashMap`, e. g. a simple `HashMap`) or runtime exceptions.
 
 <a name="chm-nested-calls"></a>
 [#](#chm-nested-calls) Dl.5. Aren't there **calls to methods on a `ConcurrentHashMap` instance
