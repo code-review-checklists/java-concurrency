@@ -46,6 +46,7 @@ Race conditions
  - [No race conditions are possible between the program and users or other programs?
  ](#outside-world-race)
  - [No race conditions are possible on the file system?](#outside-world-race)
+ - [No use of `invalidate(key)` on Guava's loading `Cache`?](#guava-cache-invalidation-race)
 
 Testing
  - [Unit tests for thread-safe classes are multi-threaded?](#multi-threaded-tests)
@@ -497,6 +498,13 @@ in adverse cases, while methods on `File` swallow errors and make it hard even t
 conditions. Static methods from `Files` also support `StandardOpenOption.CREATE` and `CREATE_NEW`
 which may help to ensure some extra atomicity.
 
+<a name="guava-cache-invalidation-race"></a>
+[#](#guava-cache-invalidation-race) RC.8. If you are **using Guava Cache and `invalidate(key)`, are
+you not affected by the [race condition](https://github.com/google/guava/issues/1881)** which can
+leave a `Cache` with an invalid (stale) value mapped for a key? Consider using [Caffeine cache](
+https://github.com/ben-manes/caffeine) which doesn't have this problem. Caffeine is also faster and
+more scalable than Guava Cache: see [Sc.9](#caffeine).
+
 ### Testing
 
 <a name="multi-threaded-tests"></a>
@@ -701,6 +709,9 @@ collections) with non-blocking equivalents within JDK.
 cache instead of other Cache implementations (such from Guava)**? [Caffeine's performance](
 https://github.com/ben-manes/caffeine/wiki/Benchmarks) is very good compared to other caching
 libraries.
+
+Another reason to use Caffeine instead of Guava Cache is that it avoids an invalidation race: see
+[RC.8](#guava-cache-invalidation-race).
 
 <a name="lazy-init"></a>
 ### Lazy initialization and double-checked locking
