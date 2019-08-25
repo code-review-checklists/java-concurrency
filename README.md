@@ -590,7 +590,7 @@ See [JCIP 10.1.3] and [EJ Item 79] for more information.
 within lambdas passed into `compute()`-like methods called on the same map?** For example, the
 following code is deadlock-prone:
 ```java
-map.compute(k, (k, v) -> {
+map.compute(k, (String k, Integer v) -> {
   if (v == null || v == 0) {
     return map.get(DEFAULT_KEY);
   }
