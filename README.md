@@ -836,7 +836,9 @@ field doesn't have a `volatile` modifier) in [EJ Item 83].
 Annotate such fields with [`@LazyInit`](
 http://errorprone.info/api/latest/com/google/errorprone/annotations/concurrent/LazyInit.html) from
 [`error_prone_annotations`](
-https://search.maven.org/search?q=a:error_prone_annotations%20g:com.google.errorprone).
+https://search.maven.org/search?q=a:error_prone_annotations%20g:com.google.errorprone). The place
+in code with the race should also be identified with WARNING comments: see
+[NB.3](#non-blocking-warning).
 
 <a name="no-static-dcl"></a>
 [#](#no-static-dcl) LI.6. Is **[lazy initialization holder class idiom](
@@ -866,8 +868,8 @@ used if all parts of the state are integers that can together fit 64 bits. See a
 <a name="non-blocking-warning"></a>
 [#](#non-blocking-warning) NB.3. Are there **visible WARNING comments identifying the boundaries of
 non-blocking code**? The comments should mark the start and the end of non-blocking code, partially
-blocking code, benignly racy code (see [Dc.8](#document-benign-race)), or code that may be executed
-in multiple parallel threads without synchronization. The opening comments should:
+blocking code, and benignly racy code (see [Dc.8](#document-benign-race) and
+[LI.5](#lazy-init-benign-race)). The opening comments should:
 
  1. Justify the need for such error-prone code (which is a special case of
  [Dc.1](#justify-document)).
@@ -1157,9 +1159,9 @@ Github:
  - [Benedict Jin](https://github.com/asdf2014)
  - [Petr Janeček](https://stackoverflow.com/users/1273080/petr-jane%C4%8Dek)
  
- At the moment when this checklist was imported to Github, all text was written by Roman Leventov.
+At the moment when this checklist was imported to Github, all text was written by Roman Leventov.
  
- The checklist is not considered complete, comments and contributions are welcome!
+The checklist is not considered complete, comments and contributions are welcome!
 
 ## No Copyright
 
