@@ -46,6 +46,8 @@ Race conditions
  - [No separate getters to an atomically updated state?](#moving-state-race)
  - [No state used for making decisions or preparing data inside a critical section is read outside?
  ](#read-outside-critical-section-race)
+ - [`coll.toArray(new E[coll.size()])` is *not* called on a synchronized collection?
+ ](#read-outside-critical-section-race)
  - [No race conditions are possible between the program and users or other programs?
  ](#outside-world-race)
  - [No race conditions are possible on the file system?](#outside-world-race)
@@ -493,6 +495,19 @@ of the critical section or in a different critical section, isn’t there a race
 critical section is entered**? This is a typical variant of check-then-act race condition, see
 [JCIP 2.2.1].
 
+An example of this race condition is calling `toArray()` on synchronized collections with a sized
+array:
+```java
+list = Collections.synchronizedList(new ArrayList<>());
+...
+elements = list.toArray(new Element[list.size()]);
+```
+This might unexpectedly leave the `elements` array with some nulls in the end if there are some
+concurrent removals from the list. Therefore, `toArray()` on a synchronized collection should be
+called with a zero-length array: `toArray(new Element[0])`, which is also not worse from the
+performance perspective: see "[Arrays of Wisdom of the
+Ancients](https://shipilev.net/blog/2016/arrays-wisdom-ancients/)".
+
 See also [RC.9](#cache-invalidation-race) about cache invalidation races which are similar to
 check-then-act races.
 
@@ -775,30 +790,30 @@ http://hg.openjdk.java.net/code-tools/jcstress/file/9270b927e00f/tests-custom/sr
 pattern might also be used. However, if the lazily-initialized field is not `volatile` and there are
 accesses to the field that bypass the initialization path, the value of the **field must be
 carefully cached in a local variable**. For example, the following code is buggy:
+```java
+private MyImmutableClass lazilyInitializedField;
 
-    private MyImmutableClass lazilyInitializedField;
-
-    void doSomething() {
-      ...
-      if (lazilyInitializedField != null) {       // (1)
-        lazilyInitializedField.doSomethingElse(); // (2) - Can throw NPE!
-      }
-    }
-
+void doSomething() {
+  ...
+  if (lazilyInitializedField != null) {       // (1)
+    lazilyInitializedField.doSomethingElse(); // (2) - Can throw NPE!
+  }
+}
+```
 This code might result in a `NullPointerException`, because although a non-null value is observed
 when the field is read the first time at line 1, the second read at line 2 could observe null.
 
 The above code could be fixed as follows:
-
-    void doSomething() {
-      MyImmutableClass lazilyInitialized = this.lazilyInitializedField;
-      if (lazilyInitialized != null) {
-        // Calling doSomethingElse() on a local variable to avoid NPE:
-        // see https://github.com/code-review-checklists/java-concurrency#safe-local-dcl
-        lazilyInitialized.doSomethingElse();
-      }
-    }
-
+```java
+void doSomething() {
+  MyImmutableClass lazilyInitialized = this.lazilyInitializedField;
+  if (lazilyInitialized != null) {
+    // Calling doSomethingElse() on a local variable to avoid NPE:
+    // see https://github.com/code-review-checklists/java-concurrency#safe-local-dcl
+    lazilyInitialized.doSomethingElse();
+  }
+}
+```
 See "[Wishful Thinking: Happens-Before Is The Actual Ordering](
 https://shipilev.net/blog/2016/close-encounters-of-jmm-kind/#wishful-hb-actual)" and
 "[Date-Race-Ful Lazy Initialization for Performance](
