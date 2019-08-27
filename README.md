@@ -25,6 +25,9 @@ Documentation
  - [Each use of `volatile` is justified?](#justify-volatile)
  - [Field that is neither `volatile` nor annotated with `@GuardedBy` has a comment?](#plain-field)
 
+Insufficient synchronization
+ - [Static methods and fields are properly synchronized?](#static-thread-safe)
+
 Excessive thread safety
  - [No "extra" (pseudo) thread safety?](#pseudo-safety)
  - [No atomics on which only `get()` and `set()` are called?](#redundant-atomics)
@@ -81,7 +84,7 @@ Improving scalability
  ](#use-stamped-lock)
  - [Considered `LongAdder` instead of an `AtomicLong` for a "hot field"?
  ](#long-adder-for-hot-fields)
- - [Considered queues from JCTools instead of JDK's concurrent queues?](#jctools)
+ - [Considered queues from JCTools instead of the standard concurrent queues?](#jctools)
  - [Considered Caffeine cache instead of other caching libraries?](#caffeine)
 
 Lazy initialization and double-checked locking
@@ -358,6 +361,13 @@ specified to be called only from a single thread sequentially (described as per
 non-thread-safe classes when those objects could be mutated from some methods of the enclosing
 thread-safe class. See [RC.2](#unsafe-concurrent-point-read), [RC.3](#unsafe-concurrent-iteration),
 [RC.4](#concurrent-mutation-race) about what could go wrong with such code.
+
+### Insufficient synchronization
+
+<a name="static-thread-safe"></a>
+[#](#static-thread-safe) IS.1. **Can non-private static methods be called concurrently from multiple
+threads?** If there is a non-private static field with mutable state, such as a collection, is it an
+instance of a thread-safe class or synchronized using some `Collections.synchronizedXxx()` method?
 
 ### Excessive thread safety
 
@@ -890,7 +900,7 @@ See also [the section about parallel Streams](#parallel-streams).
 [#](#use-common-fjp) TE.5. An opposite of the previous item: **can non-blocking computations be
 parallelized or executed asynchronously by submitting tasks to `ForkJoinPool.commonPool()` or via
 parallel Streams instead of using a custom thread pool** (e. g. created by one of the static factory
-methods from ExecutorServices)? Unless the custom thread pool is configured with a `ThreadFactory`
+methods from `ExecutorServices`)? Unless the custom thread pool is configured with a `ThreadFactory`
 that specifies a non-default priority for threads or a custom exception handler (see
 [TE.1](#name-threads)) there is little reason to create more threads in the system instead of
 reusing threads of the common `ForkJoinPool`.
