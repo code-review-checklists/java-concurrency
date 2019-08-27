@@ -46,7 +46,11 @@ Race conditions
  - [No race conditions are possible between the program and users or other programs?
  ](#outside-world-race)
  - [No race conditions are possible on the file system?](#outside-world-race)
- - [No use of `invalidate(key)` on Guava's loading `Cache`?](#guava-cache-invalidation-race)
+ - [No concurrent `invalidate(key)` and `get()` calls  on Guava's loading `Cache`?
+ ](#guava-cache-invalidation-race)
+ - [`Cache.put()` is not used nor exposed in the own Cache interface?](#cache-invalidation-race)
+ - [Concurrent invalidation race is not possible on a lazily initialized state?
+ ](#cache-invalidation-race)
 
 Testing
  - [Unit tests for thread-safe classes are multi-threaded?](#multi-threaded-tests)
@@ -479,6 +483,9 @@ of the critical section or in a different critical section, isn’t there a race
 critical section is entered**? This is a typical variant of check-then-act race condition, see
 [JCIP 2.2.1].
 
+See also [RC.9](#cache-invalidation-race) about cache invalidation races which are similar to
+check-then-act races.
+
 <a name="outside-world-race"></a>
 [#](#outside-world-race) RC.7. Aren't there **race conditions between the code (i. e. program
 runtime actions) and some actions in the outside world** or actions performed by some other programs
@@ -504,6 +511,23 @@ you not affected by the [race condition](https://github.com/google/guava/issues/
 leave a `Cache` with an invalid (stale) value mapped for a key? Consider using [Caffeine cache](
 https://github.com/ben-manes/caffeine) which doesn't have this problem. Caffeine is also faster and
 more scalable than Guava Cache: see [Sc.9](#caffeine).
+
+<a name="cache-invalidation-race"></a>
+[#](#cache-invalidation-race) RC.9. Generalization of the previous item: isn't there a potential
+**cache invalidation race** in the code? There are several ways to get into this problem:
+ - Using `Cache.put()` method concurrently with `invalidate()`. Unlike
+ [RC.8](#guava-cache-invalidation-race), this is a race regardless of what caching library is used,
+ not necessarily Guava. This is also similar to [RC.1](#chm-race).
+ - Having `put()` and `invalidate()` methods exposed in the own Cache interface. This places the
+ burden of synchronizing `put()` (together the preceding "checking" code, such as `get()`) and
+ `invalidate()` calls on the users of the API which really should be the job of the Cache
+ implementation.
+ - There is some [lazily initialized state](#lazy-init) in a mutable object which can be invalidated
+ upon mutation of the object, and can also be accessed concurrently with the mutation. This means
+ the class is in the category of [non-blocking concurrency](#non-blocking): see the corresponding
+ checklist items. A way to avoid cache invalidation race in this case is to wrap the primary state
+ and the cached state into a POJO and replace it atomically, as described in
+ [NB.2](#swap-state-atomically).
 
 ### Testing
 
@@ -724,6 +748,9 @@ Initialization in Java](https://shipilev.net/blog/2014/safe-public-construction/
 thread-safe and might it be called from multiple threads concurrently?** If the answers are "no" and
 "yes", either double-checked locking should be used or the initialization should be eager.
 
+Be especially wary of using lazy-initialization in mutable objects. They are prone to cache
+invalidation race conditions: see [RC.9](#cache-invalidation-race).
+
 <a name="use-dcl"></a>
 [#](#use-dcl) LI.2. If a field is initialized lazily under a simple lock, is it possible to use
 double-checked locking instead to improve performance?
@@ -795,6 +822,7 @@ mistake in, and is at least as efficient as double-checked locking (see benchmar
 Publication and Safe Initialization in
 Java](https://shipilev.net/blog/2014/safe-public-construction/)").
 
+<a name="non-blocking"></a>
 ### Non-blocking and partially blocking code
 
 <a name="check-non-blocking-code"></a>
