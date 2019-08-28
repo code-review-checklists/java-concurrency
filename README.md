@@ -22,7 +22,7 @@ Documentation
  - [`ConcurrentHashMap` is *not* stored in a variable of `Map` type?](#concurrent-map-type)
  - [`compute()`-like methods are *not* called on a variable of `ConcurrentMap` type?](#chm-type)
  - [`@GuardedBy` annotation is used?](#guarded-by)
- - [Safety of benign races is explained?](#document-benign-race)
+ - [Safety of a benign race (e. g. unbalanced synchronization) is explained?](#document-benign-race)
  - [Each use of `volatile` is justified?](#justify-volatile)
  - [Field that is neither `volatile` nor annotated with `@GuardedBy` has a comment?](#plain-field)
 
@@ -30,6 +30,8 @@ Insufficient synchronization
  - [Static methods and fields are properly synchronized?](#static-thread-safe)
  - [Thread *doesn't* wait in a loop for a non-volatile field to be updated by another Thread?
  ](#non-volatile-visibility)
+ - [Read access to a non-volatile primitive field is within a critical section?
+ ](#non-volatile-protection)
 
 Excessive thread safety
  - [No "extra" (pseudo) thread safety?](#pseudo-safety)
@@ -332,7 +334,9 @@ and methods with @GuardedBy annotations](https://errorprone.info/bugpattern/Guar
 [#](#document-benign-race) Dc.8. If in a thread-safe class some **fields are accessed both from
 within critical sections and outside of critical sections**, is it explained in comments why this
 is safe? For example, unprotected read-only access to a reference to an immutable object might be
-benignly racy (see [RC.5](#moving-state-race)).
+benignly racy (see [RC.5](#moving-state-race)). Answering this question also helps to prevent
+problems described in [IS.2](#non-volatile-visibility), [IS.3](#non-volatile-protection), and
+[RC.2](#unsafe-concurrent-point-read).
 
 Instead of writing a comment explaining that access to a *lazily initialized field* outside of a
 critical section is safe, the field could just be annotated with [`@LazyInit`](
@@ -368,7 +372,8 @@ Perhaps, the field is only accessed and mutated from a single method or a set of
 specified to be called only from a single thread sequentially (described as per
 [Dc.1](#justify-document)). This recommendation also applies to `final` fields that store objects of
 non-thread-safe classes when those objects could be mutated from some methods of the enclosing
-thread-safe class. See [RC.2](#unsafe-concurrent-point-read), [RC.3](#unsafe-concurrent-iteration),
+thread-safe class. See [IS.2](#non-volatile-visibility), [IS.3](#non-volatile-protection),
+[RC.2](#unsafe-concurrent-point-read), [RC.3](#unsafe-concurrent-iteration), and
 [RC.4](#concurrent-mutation-race) about what could go wrong with such code.
 
 ### Insufficient synchronization
@@ -386,9 +391,25 @@ The field should at least be `volatile` to ensure eventual visibility of concurr
 https://wiki.sei.cmu.edu/confluence/display/java/VNA00-J.+Ensure+visibility+when+accessing+shared+primitive+variables)
 for more details and examples.
 
-[Dc.10](#plain-field) also demands adding explaning comments to mutable fields which are neither
+[Dc.10](#plain-field) also demands adding explaining comments to mutable fields which are neither
 `volatile` nor annotated with `@GuardedBy` which should inevitably lead to the discovery of the
 visibility issue.
+
+<a name="non-volatile-protection"></a>
+[#](#non-volatile-protection) IS.3. **Read accesses to non-volatile primitive fields which can be
+updated concurrently are protected with a lock as well as the writes?** The minimum reason for this
+is that reads of `long` and `double` fields are non-atomic ([JLS 17.7](
+https://docs.oracle.com/javase/specs/jls/se11/html/jls-17.html#jls-17.7), [JCIP 3.1.2]). But even
+with other types of fields, unbalanced synchronization creates possibilities for downstream bugs
+related to the visibility ([IS.2](#non-volatile-visibility)) and the lack of the expected
+happens-before relationships.
+
+As well as with the previous item, accurate documentation of benign races
+([Dc.8](#document-benign-race) and [Dc.10](#plain-field)) should reliably expose the cases when
+unbalanced synchronization is problematic.
+
+See also [RC.2](#unsafe-concurrent-point-read) regarding unbalanced synchronization of read accesses
+to mutable objects, such as collections.
 
 ### Excessive thread safety
 
@@ -475,6 +496,9 @@ list. However, a small change in `ArrayList`’s implementation in OpenJDK could
 races in such cases at very little cost. If you are subscribed to the concurrency-interest mailing
 list, you could help to bring attention to this problem by reviving [this thread](
 http://cs.oswego.edu/pipermail/concurrency-interest/2018-September/016526.html).
+
+See also [IS.3](#non-volatile-protection) regarding unbalanced synchronization of accesses to
+primitive fields.
 
 <a name="unsafe-concurrent-iteration"></a>
 [#](#unsafe-concurrent-iteration) RC.3. A variation of the previous item: isn’t a non-thread-safe
