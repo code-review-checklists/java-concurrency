@@ -9,6 +9,7 @@ Design
    - Producer-consumer
    - Instance confinement
    - Thread/Task/Serial thread confinement
+   - Active object
 
 Documentation
  - [Thread safety is justified in comments?](#justify-document)
@@ -120,6 +121,7 @@ Threads and Executors
  ](#fjp-no-blocking)
  - [Can execute non-blocking computation in `FJP.commonPool()` instead of a custom thread pool?
  ](#use-common-fjp)
+ - [`ExecutorService` is explicitly shutdown in `close()`?](#explicit-shutdown)
 
 Parallel Streams
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
@@ -197,6 +199,9 @@ idea of thread confinement that is used in conjunction with the divide-and-conqu
 usually comes in the form of lambda-captured "context" parameters or fields in the per-thread task
 objects. Serial thread confinement is an extension of the idea of thread confinement for the
 producer-consumer pattern, see [JCIP 5.3.2].
+
+**Active object.** An object manages its own `ExecutorService` or `Thread` to do the work. See the
+[article on Wikipedia](https://en.wikipedia.org/wiki/Active_object) and [TE.6](#explicit-shutdown).
 
 ### Documentation
 
@@ -377,7 +382,7 @@ instance of a thread-safe class or synchronized using some `Collections.synchron
 [#](#non-volatile-visibility) IS.2. There is no situation where some **Thread awaits until a
 non-volatile field has a certain value in a loop, expecting it to be updated from another Thread?**
 The field should at least be `volatile` to ensure eventual visibility of concurrent updates. See
-[JCIP 3.1], [JCIP 3.1.4], and [VNA00-J](
+[JCIP 3.1, 3.1.4], and [VNA00-J](
 https://wiki.sei.cmu.edu/confluence/display/java/VNA00-J.+Ensure+visibility+when+accessing+shared+primitive+variables)
 for more details and examples.
 
@@ -935,6 +940,16 @@ methods from `ExecutorServices`)? Unless the custom thread pool is configured wi
 that specifies a non-default priority for threads or a custom exception handler (see
 [TE.1](#name-threads)) there is little reason to create more threads in the system instead of
 reusing threads of the common `ForkJoinPool`.
+
+<a name="explicit-shutdown"></a>
+[#](#explicit-shutdown) TE.6. Is every **`ExecutorService` treated as a resource and is shutdown
+explicitly in the `close()` method of the containing object**, or in a try-with-resources of a
+try-finally statement? Failure to shutdown an `ExecutorService` might lead to a thread leak even if
+an `ExecutorService` object is no longer accessible, because some implementations (such as
+`ThreadPoolExecutor`) shutdown themselves in a finalizer, [while `finalize()` is not guaranteed to
+ever be called](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#finalize()) by
+the JVM.
 
 ### Parallel Streams
 
