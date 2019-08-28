@@ -27,6 +27,8 @@ Documentation
 
 Insufficient synchronization
  - [Static methods and fields are properly synchronized?](#static-thread-safe)
+ - [Thread *doesn't* wait in a loop for a non-volatile field to be updated by another Thread?
+ ](#non-volatile-visibility)
 
 Excessive thread safety
  - [No "extra" (pseudo) thread safety?](#pseudo-safety)
@@ -370,6 +372,18 @@ thread-safe class. See [RC.2](#unsafe-concurrent-point-read), [RC.3](#unsafe-con
 [#](#static-thread-safe) IS.1. **Can non-private static methods be called concurrently from multiple
 threads?** If there is a non-private static field with mutable state, such as a collection, is it an
 instance of a thread-safe class or synchronized using some `Collections.synchronizedXxx()` method?
+
+<a name="non-volatile-visibility"></a>
+[#](#non-volatile-visibility) IS.2. There is no situation where some **Thread awaits until a
+non-volatile field has a certain value in a loop, expecting it to be updated from another Thread?**
+The field should at least be `volatile` to ensure eventual visibility of concurrent updates. See
+[JCIP 3.1], [JCIP 3.1.4], and [VNA00-J](
+https://wiki.sei.cmu.edu/confluence/display/java/VNA00-J.+Ensure+visibility+when+accessing+shared+primitive+variables)
+for more details and examples.
+
+[Dc.10](#plain-field) also demands adding explaning comments to mutable fields which are neither
+`volatile` nor annotated with `@GuardedBy` which should inevitably lead to the discovery of the
+visibility issue.
 
 ### Excessive thread safety
 
