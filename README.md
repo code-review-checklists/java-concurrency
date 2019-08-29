@@ -32,6 +32,8 @@ Insufficient synchronization
  ](#non-volatile-visibility)
  - [Read access to a non-volatile primitive field is within a critical section?
  ](#non-volatile-protection)
+ - [Servlets, Controllers, Filters, Handlers, `@Get`/`@Post` methods are thread-safe?
+ ](#server-framework-sync)
 
 Excessive thread safety
  - [No "extra" (pseudo) thread safety?](#pseudo-safety)
@@ -412,6 +414,19 @@ unbalanced synchronization is problematic.
 
 See also [RC.2](#unsafe-concurrent-point-read) regarding unbalanced synchronization of read accesses
 to mutable objects, such as collections.
+
+<a name="server-framework-sync"></a>
+[#](#server-framework-sync) IS.4. **Is the business logic written for server frameworks
+thread-safe?** This includes:
+ - `Servlet` implementations
+ - `@(Rest)Controller`-annotated classes, `@Get/PostMapping`-annotated methods in Spring
+ - `@SessionScoped` and `@ApplicationScoped` managed beans in JSF
+ - `Filter` and `Handler` implementations in various synchronous and asynchronous frameworks
+ (including Jetty, Netty, Undertow)
+ - `@GET`- and `@POST`-annotated methods (resources) in JAX-RS (RESTful APIs)
+
+It's easy to forget that if such code mutates some state (e. g. fields in the class), it must be
+properly synchronized or access only concurrent collections and classes.
 
 ### Excessive thread safety
 
