@@ -61,6 +61,8 @@ Race conditions
  - [`Cache.put()` is not used nor exposed in the own Cache interface?](#cache-invalidation-race)
  - [Concurrent invalidation race is not possible on a lazily initialized state?
  ](#cache-invalidation-race)
+ - [Iteration, Stream pipeline, or copying a synchronized collection is protected by a lock?
+ ](#synchronized-collection-iter)
 
 Testing
  - [Unit tests for thread-safe classes are multi-threaded?](#multi-threaded-tests)
@@ -326,7 +328,7 @@ specified locks.
 
 See [JCIP 2.4] for more information about `@GuardedBy`.
 
-Usage of `@GuardedBy` is especially beneficial in conjuction with [Error Prone](
+Usage of `@GuardedBy` is especially beneficial in conjunction with [Error Prone](
 https://errorprone.info/) tool which is able to [statically check for unguarded accesses to fields
 and methods with @GuardedBy annotations](https://errorprone.info/bugpattern/GuardedBy).
 
@@ -505,13 +507,16 @@ primitive fields.
 collection such as `HashMap` or `ArrayList` **iterated outside of a critical section**, while it may
 be modified concurrently? This could happen by accident when an `Iterable`, `Iterator` or `Stream`
 over a collection is returned from a method of a thread-safe class, even though the iterator or
-stream is created within a critical section. Returning unmodifiable collection views like
+stream is created within a critical section. Note that returning unmodifiable collection views like
 `Collections.unmodifiableList()` from getters wrapping collection fields that may be modified
-concurrently is subject to the same problem. If the collection is relatively small, it should be
-copied entirely, or a copy-on-write collection (see [Sc.3](#non-blocking-collections)) should be
-used instead of a non-thread-safe collection.
+concurrently doesn't solve this problem. If the collection is relatively small, it should be copied
+entirely, or a copy-on-write collection (see [Sc.3](#non-blocking-collections)) should be used
+instead of a non-thread-safe collection.
 
 Like the previous item, this one applies to growing ArrayLists too.
+
+This item applies even to synchronized collections: see [RC.10](#synchronized-collection-iter) for
+details.
 
 <a name="concurrent-mutation-race"></a>
 [#](#concurrent-mutation-race) RC.4. Generalization of the previous item: aren’t **non-trivial
@@ -596,6 +601,19 @@ more scalable than Guava Cache: see [Sc.9](#caffeine).
  checklist items. A way to avoid cache invalidation race in this case is to wrap the primary state
  and the cached state into a POJO and replace it atomically, as described in
  [NB.2](#swap-state-atomically).
+
+<a name="synchronized-collection-iter"></a>
+[#](#synchronized-collection-iter) RC.10. **The whole iteration loop over a synchronized collection
+(i. e. obtained from one of the `Collections.synchronizedXxx()` static factory methods), or a
+Stream pipeline using a synchronized collection as a source is protected by `synchronized (coll)`?**
+See [the Javadoc](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Collections.html#synchronizedCollection(java.util.Collection))
+for examples and details. This also applies to passing synchronized collections into copy
+constructors or static factory methods of other collections because they implicitly iterate over the
+source collection.
+
+See also [RC.3](#unsafe-concurrent-iteration) about unprotected iteration over non-thread-safe
+collections.
 
 ### Testing
 
