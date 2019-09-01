@@ -34,6 +34,7 @@ Insufficient synchronization
  ](#non-volatile-protection)
  - [Servlets, Controllers, Filters, Handlers, `@Get`/`@Post` methods are thread-safe?
  ](#server-framework-sync)
+ - [Calls to `DateFormat.parse()` and `format()` are synchronized?](#dateformat)
 
 Excessive thread safety
  - [No "extra" (pseudo) thread safety?](#pseudo-safety)
@@ -389,6 +390,9 @@ thread-safe class. See [IS.2](#non-volatile-visibility), [IS.3](#non-volatile-pr
 threads?** If there is a non-private static field with mutable state, such as a collection, is it an
 instance of a thread-safe class or synchronized using some `Collections.synchronizedXxx()` method?
 
+Note that calls to `DateFormat.parse()` and `format()` must be synchronized because they mutate the
+object: see [IS.5](#dateformat).
+
 <a name="non-volatile-visibility"></a>
 [#](#non-volatile-visibility) IS.2. There is no situation where some **Thread awaits until a
 non-volatile field has a certain value in a loop, expecting it to be updated from another Thread?**
@@ -429,6 +433,11 @@ thread-safe?** This includes:
 
 It's easy to forget that if such code mutates some state (e. g. fields in the class), it must be
 properly synchronized or access only concurrent collections and classes.
+
+<a name="dateformat"></a>
+[#](#dateformat) IS.5. **Calls to `parse()` and `format()` on a shared instance of `DateFormat` are
+synchronized**, e. g. if a `DateFormat` is stored in a static field? Although `parse()` and
+`format()` may look "read-only", they actually mutate the receiving `DateFormat` object.
 
 ### Excessive thread safety
 
