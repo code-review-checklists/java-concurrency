@@ -700,7 +700,9 @@ acquiring synchronizing on the object of the class: see [JCIP 4.2.1].
 
 <a name="lock-unlock"></a>
 [#](#lock-unlock) Lk.4. **Locking (`lock()`, `lockInterruptibly()`, `tryLock()`) and `unlock()`
-methods are used strictly with the recommended try-finally idiom without deviations?**
+methods are used strictly with the recommended [try-finally idiom](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/locks/Lock.html)
+without deviations?**
  - `lock()` (or `lockInterruptibly()`) call goes *before* the `try {}` block rather than within it?
  - There are no statements between the `lock()` (or `lockInterruptibly()`) call and the beginning of
  the `try {}` block?
