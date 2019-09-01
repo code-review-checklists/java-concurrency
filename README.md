@@ -1275,6 +1275,12 @@ Github:
  - [Andrey Satarin](https://github.com/asatarin)
  - [Benedict Jin](https://github.com/asdf2014)
  - [Petr Janeček](https://stackoverflow.com/users/1273080/petr-jane%C4%8Dek)
+
+The ideas for some items are taken from "[Java Concurrency Gotchas](
+https://www.slideshare.net/alexmiller/java-concurrency-gotchas-3666977)" presentation by [Alex
+Miller](https://github.com/puredanger) and [What is the most frequent concurrency issue you've
+encountered in Java?](https://stackoverflow.com/questions/461896) question on StackOverflow (thanks
+to Alex Miller who created this question and the contributors).
  
 At the moment when this checklist was imported to Github, all text was written by Roman Leventov.
  
