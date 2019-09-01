@@ -72,10 +72,12 @@ Testing
  - [Concurrent test workers coordinate their start?](#coordinate-test-workers)
  - [There are more test threads than CPUs if possible for the test?](#test-workers-interleavings)
 
-Replacing locks with concurrency utilities
+Locks
  - [Can use concurrency utility instead of `Object.wait()`/`notify()`?](#avoid-wait-notify)
  - [Can use Guava’s `Monitor` instead of a standard lock with conditional waits?](#guava-monitor)
  - [Can use `synchronized` instead of a `ReentrantLock`?](#use-synchronized)
+ - [`lock()` is called outside of `try {}`? No statements between `lock()` and `try {}`?
+ ](#lock-unlock)
 
 Avoiding deadlocks
  - [Can avoid nested critical sections?](#avoid-nested-critical-sections)
@@ -658,7 +660,8 @@ interleavings and thus test the logic for the absence of race conditions more th
 obtained as [`Runtime.getRuntime().availableProcessors()`](
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Runtime.html#availableProcessors()).
 
-### Replacing locks with concurrency utilities
+<a name="replacing-locks-with-concurrency-utilities"></a>
+### Locks
 
 <a name="avoid-wait-notify"></a>
 [#](#avoid-wait-notify) Lk.1. Is it possible to use concurrent collections and/or utilities from
@@ -675,16 +678,33 @@ https://google.github.io/guava/releases/27.0.1-jre/api/docs/com/google/common/ut
 instead**?
 
 <a name="use-synchronized"></a>
-[#](#use-synchronized) Lk.3. **Isn't `ReentrantLock` used when `synchronized` would suffice?** The
-title of this section, "Replacing locks with concurrency utilities", shouldn't be taken as far as
-using `ReentrantLock` in the situations when none of its distinctive features (`tryLock()`, timed
-and interruptible locking methods, etc.) is used. Note that reentrancy is *not* such a feature:
-intrinsic Java locks support reentrancy too. The ability for a `ReentrantLock` to be fair is seldom
-such a feature: see [ETS.4](#unneeded-fairness). See [JCIP 13.4] for more information about this.
+[#](#use-synchronized) Lk.3. **Isn't `ReentrantLock` used when `synchronized` would suffice?**
+`ReentrantLock` shoulndn't be used in the situations when none of its distinctive features
+(`tryLock()`, timed and interruptible locking methods, etc.) are used. Note that reentrancy is *not*
+such a feature: intrinsic Java locks support reentrancy too. The ability for a `ReentrantLock` to be
+fair is seldom such a feature: see [ETS.4](#unneeded-fairness). See [JCIP 13.4] for more information
+about this.
 
 This advice also applies when a class uses a private lock object (instead of `synchronized (this)`
 or synchronized methods) to protect against accidental or malicious interference by the clients
-acquiring synchronizing on the object of the class (see [JCIP 4.2.1]).
+acquiring synchronizing on the object of the class: see [JCIP 4.2.1].
+
+<a name="lock-unlock"></a>
+[#](#lock-unlock) Lk.4. **Locking (`lock()`, `lockInterruptibly()`, `tryLock()`) and `unlock()`
+methods are used strictly with the recommended try-finally idiom without deviations?**
+ - `lock()` (or `lockInterruptibly()`) call goes *before* the `try {}` block rather than within it?
+ - There are no statements between the `lock()` (or `lockInterruptibly()`) call and the beginning of
+ the `try {}` block?
+ - `unlock()` call is the first statement within the `finally {}` block?
+
+This advice doesn't apply when locking methods and `unlock()` should occur in different scopes, i.
+e. not within the recommended try-finally idiom altogether. The containing methods could be
+annotated with Error Prone's [`@LockMethod`](
+https://errorprone.info/api/latest/com/google/errorprone/annotations/concurrent/LockMethod.html) and
+`@UnlockMethod` annotations.
+
+There is a "Lock acquired but not safely unlocked" inspection in IntelliJ IDEA which corresponds to
+this item.
 
 ### Avoiding deadlocks
 
