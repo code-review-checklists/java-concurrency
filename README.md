@@ -104,6 +104,7 @@ Improving scalability
  ](#long-adder-for-hot-fields)
  - [Considered queues from JCTools instead of the standard concurrent queues?](#jctools)
  - [Considered Caffeine cache instead of other caching libraries?](#caffeine)
+ - [Can apply speculation (optimistic concurrency) technique?](#speculation)
 
 Lazy initialization and double-checked locking
  - [Lazy initialization of a field should be thread-safe?](#lazy-init-thread-safety)
@@ -872,6 +873,22 @@ libraries.
 
 Another reason to use Caffeine instead of Guava Cache is that it avoids an invalidation race: see
 [RC.8](#guava-cache-invalidation-race).
+
+<a name="speculation"></a>
+[#](#speculation) Sc.10. When some state or a condition is checked, or resource is allocated within
+a critical section, and the result is usually expected to be positive (access granted,
+resource allocated) because the entity is rarely in a protected, restricted, or otherwise special
+state, or because the underlying resource is rarely in shortage, is it possible to **apply
+speculation (optimistic concurrency) to improve scalability**? This means to use lighter-weight
+synchronization (e. g. shared locking with a `ReadWriteLock` or a `StampedLock` instead of exclusive
+locking) sufficient just to detect a shortage of the resource or that the entity is in a special
+state, and fallback to heavier synchronization only when necessary.
+
+This principle is used internally in many scalable concurrent data structures, including
+`ConcurrentHashMap` and JCTools's queues, but could be applied on the higher logical level as well.
+
+See also the article about [Optimistic concurrency control](
+https://en.wikipedia.org/wiki/Optimistic_concurrency_control) on Wikipedia.
 
 <a name="lazy-init"></a>
 ### Lazy initialization and double-checked locking
