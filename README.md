@@ -24,13 +24,14 @@ Documentation
  - [`@GuardedBy` annotation is used?](#guarded-by)
  - [Safety of a benign race (e. g. unbalanced synchronization) is explained?](#document-benign-race)
  - [Each use of `volatile` is justified?](#justify-volatile)
- - [Field that is neither `volatile` nor annotated with `@GuardedBy` has a comment?](#plain-field)
+ - [Each field that is neither `volatile` nor annotated with `@GuardedBy` has a comment?
+ ](#plain-field)
 
 Insufficient synchronization
- - [Static methods and fields are properly synchronized?](#static-thread-safe)
- - [Thread *doesn't* wait in a loop for a non-volatile field to be updated by another Thread?
+ - [Static methods and fields are thread-safe?](#static-thread-safe)
+ - [Thread *doesn't* wait in a loop for a non-volatile field to be updated by another thread?
  ](#non-volatile-visibility)
- - [Read access to a non-volatile primitive field is within a critical section?
+ - [Read access to a non-volatile, concurrently updatable primitive field is protected?
  ](#non-volatile-protection)
  - [Servlets, Controllers, Filters, Handlers, `@Get`/`@Post` methods are thread-safe?
  ](#server-framework-sync)
@@ -52,30 +53,32 @@ Race conditions
  - [Non-trivial object is *not* returned from a getter in a thread-safe class?
  ](#concurrent-mutation-race)
  - [No separate getters to an atomically updated state?](#moving-state-race)
- - [No state used for making decisions or preparing data inside a critical section is read outside?
- ](#read-outside-critical-section-race)
+ - [No *check-then-act* race conditions (state used inside a critical section is read outside of
+ it)?](#read-outside-critical-section-race)
  - [`coll.toArray(new E[coll.size()])` is *not* called on a synchronized collection?
  ](#read-outside-critical-section-race)
- - [No race conditions are possible between the program and users or other programs?
+ - [No race conditions with user or programmatic input or interop between programs?
  ](#outside-world-race)
- - [No race conditions are possible on the file system?](#outside-world-race)
+ - [No check-then-act race conditions with file system operations?](#outside-world-race)
  - [No concurrent `invalidate(key)` and `get()` calls  on Guava's loading `Cache`?
  ](#guava-cache-invalidation-race)
- - [`Cache.put()` is not used nor exposed in the own Cache interface?](#cache-invalidation-race)
+ - [`Cache.put()` is not used (nor exposed in the own Cache interface)?](#cache-invalidation-race)
  - [Concurrent invalidation race is not possible on a lazily initialized state?
  ](#cache-invalidation-race)
- - [Iteration, Stream pipeline, or copying a synchronized collection is protected by a lock?
- ](#synchronized-collection-iter)
+ - [Iteration, Stream pipeline, or copying a `Collections.synchronized*()` collection is protected
+ by a lock?](#synchronized-collection-iter)
 
 Testing
  - [Unit tests for thread-safe classes are multi-threaded?](#multi-threaded-tests)
  - [A shared `Random` instance is *not* used from concurrent test workers?](#concurrent-test-random)
  - [Concurrent test workers coordinate their start?](#coordinate-test-workers)
- - [There are more test threads than CPUs if possible for the test?](#test-workers-interleavings)
+ - [There are more test threads than CPUs (if possible for the test)?](#test-workers-interleavings)
 
 Locks
- - [Can use concurrency utility instead of `Object.wait()`/`notify()`?](#avoid-wait-notify)
- - [Can use Guava’s `Monitor` instead of a standard lock with conditional waits?](#guava-monitor)
+ - [Can use some concurrency utility instead of a lock with conditional `wait` (`await`) calls?
+ ](#avoid-wait-notify)
+ - [Can use Guava’s `Monitor` instead of a lock with conditional `wait` (`await`) calls?
+ ](#guava-monitor)
  - [Can use `synchronized` instead of a `ReentrantLock`?](#use-synchronized)
  - [`lock()` is called outside of `try {}`? No statements between `lock()` and `try {}`?
  ](#lock-unlock)
@@ -85,7 +88,8 @@ Avoiding deadlocks
  - [Locking order for nested critical sections is documented?](#document-locking-order)
  - [Dynamically determined locks for nested critical sections are ordered?](#dynamic-lock-ordering)
  - [No extension API calls within critical sections?](#non-open-call)
- - [No nested calls to `ConcurrentHashMap`'s methods on the same map?](#chm-nested-calls)
+ - [No calls to `ConcurrentHashMap`'s methods (incl. `get()`) in `compute()`-like lambdas on the
+ same map?](#chm-nested-calls)
 
 Improving scalability
  - [Critical section is as small as possible?](#minimize-critical-sections)
@@ -394,8 +398,8 @@ Note that calls to `DateFormat.parse()` and `format()` must be synchronized beca
 object: see [IS.5](#dateformat).
 
 <a name="non-volatile-visibility"></a>
-[#](#non-volatile-visibility) IS.2. There is no situation where some **Thread awaits until a
-non-volatile field has a certain value in a loop, expecting it to be updated from another Thread?**
+[#](#non-volatile-visibility) IS.2. There is no situation where some **thread awaits until a
+non-volatile field has a certain value in a loop, expecting it to be updated from another thread?**
 The field should at least be `volatile` to ensure eventual visibility of concurrent updates. See
 [JCIP 3.1, 3.1.4], and [VNA00-J](
 https://wiki.sei.cmu.edu/confluence/display/java/VNA00-J.+Ensure+visibility+when+accessing+shared+primitive+variables)
