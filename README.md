@@ -265,8 +265,9 @@ extensions API of the project: is it specified in their Javadoc comments whether
 case of interfaces and abstract classes designed for subclassing in extensions, should they be
 implemented as) **immutable, thread-safe, or not thread-safe**? For classes and methods that are (or
 should be implemented as) thread-safe, is it documented precisely with what other methods (or
-themselves) they may be called concurrently from multiple threads? See also [EJ Item 82] and
-[JCIP 4.5].
+themselves) they may be called concurrently from multiple threads? See also [EJ Item 82],
+[JCIP 4.5], [CON52-J](
+https://wiki.sei.cmu.edu/confluence/display/java/CON52-J.+Document+thread-safety+and+use+annotations+where+applicable).
 
 If the `@com.google.errorprone.annotations.Immutable` annotation is used to mark immutable classes,
 [Error Prone](https://errorprone.info/) static analysis tool is capable to detect when a class is
@@ -413,11 +414,12 @@ visibility issue.
 <a name="non-volatile-protection"></a>
 [#](#non-volatile-protection) IS.3. **Read accesses to non-volatile primitive fields which can be
 updated concurrently are protected with a lock as well as the writes?** The minimum reason for this
-is that reads of `long` and `double` fields are non-atomic ([JLS 17.7](
-https://docs.oracle.com/javase/specs/jls/se11/html/jls-17.html#jls-17.7), [JCIP 3.1.2]). But even
-with other types of fields, unbalanced synchronization creates possibilities for downstream bugs
-related to the visibility ([IS.2](#non-volatile-visibility)) and the lack of the expected
-happens-before relationships.
+is that reads of `long` and `double` fields are non-atomic (see [JLS 17.7](
+https://docs.oracle.com/javase/specs/jls/se11/html/jls-17.html#jls-17.7), [JCIP 3.1.2], [VNA05-J](
+https://wiki.sei.cmu.edu/confluence/display/java/VNA05-J.+Ensure+atomicity+when+reading+and+writing+64-bit+values)).
+But even with other types of fields, unbalanced synchronization creates possibilities for downstream
+bugs related to the visibility (see the previous item) and the lack of the expected happens-before
+relationships.
 
 As well as with the previous item, accurate documentation of benign races
 ([Dc.8](#document-benign-race) and [Dc.10](#plain-field)) should reliably expose the cases when
@@ -701,7 +703,8 @@ about this.
 
 This advice also applies when a class uses a private lock object (instead of `synchronized (this)`
 or synchronized methods) to protect against accidental or malicious interference by the clients
-acquiring synchronizing on the object of the class: see [JCIP 4.2.1].
+acquiring synchronizing on the object of the class: see [JCIP 4.2.1],  [EJ Item 82], [LCK00-J](
+https://wiki.sei.cmu.edu/confluence/display/java/LCK00-J.+Use+private+final+lock+objects+to+synchronize+classes+that+may+interact+with+untrusted+code).
 
 <a name="lock-unlock"></a>
 [#](#lock-unlock) Lk.4. **Locking (`lock()`, `lockInterruptibly()`, `tryLock()`) and `unlock()`
@@ -722,6 +725,9 @@ https://errorprone.info/api/latest/com/google/errorprone/annotations/concurrent/
 There is a "Lock acquired but not safely unlocked" inspection in IntelliJ IDEA which corresponds to
 this item.
 
+See also [LCK08-J](
+https://wiki.sei.cmu.edu/confluence/display/java/LCK08-J.+Ensure+actively+held+locks+are+released+on+exceptional+conditions).
+
 ### Avoiding deadlocks
 
 <!-- Preserving former anchor with a typo. -->
@@ -739,6 +745,10 @@ producer-consumer pattern.
 sections is not reasonable, was it deliberately checked that the locks are acquired in the same
 order throughout the code of the class? **Is the locking order documented in the Javadoc comments
 for the fields where the lock objects are stored?**
+
+See [LCK07-J](
+https://wiki.sei.cmu.edu/confluence/display/java/LCK07-J.+Avoid+deadlock+by+requesting+and+releasing+locks+in+the+same+order)
+for examples.
 
 <a name="dynamic-lock-ordering"></a>
 [#](#dynamic-lock-ordering) Dl.3. If there are nested critical sections protected by several
@@ -1267,6 +1277,14 @@ instance. `StringBuilder` should be used instead of `StringBuffer`, `ThreadLocal
  - [When to use parallel streams](http://gee.cs.oswego.edu/dl/html/StreamParallelGuidance.html)
  written by Doug Lea, with the help of Brian Goetz, Paul Sandoz, Aleksey Shipilev, Heinz Kabutz,
  Joe Bowbeer, …
+ - [SEI CERT Oracle Coding Standard for Java](
+ https://wiki.sei.cmu.edu/confluence/display/java/SEI+CERT+Oracle+Coding+Standard+for+Java):
+    - [Rule 08. Visibility and Atomicity (VNA)](
+    https://wiki.sei.cmu.edu/confluence/pages/viewpage.action?pageId=88487824)
+    - [Rule 09. Locking (LCK)](
+    https://wiki.sei.cmu.edu/confluence/pages/viewpage.action?pageId=88487666)
+    - [Rec. 18. Concurrency (CON)](
+    https://wiki.sei.cmu.edu/confluence/pages/viewpage.action?pageId=88487352)
 
 ## Concurrency checklists for other programming langugages
 
