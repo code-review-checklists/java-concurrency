@@ -135,7 +135,7 @@ Threads and Executors
  ](#fjp-no-blocking)
  - [Can execute non-blocking computation in `FJP.commonPool()` instead of a custom thread pool?
  ](#use-common-fjp)
- - [`ExecutorService` is explicitly shutdown in `close()`?](#explicit-shutdown)
+ - [`ExecutorService` is shutdown explicitly?](#explicit-shutdown)
 
 Parallel Streams
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
@@ -143,12 +143,12 @@ Parallel Streams
  ](#justify-parallel-stream-use)
  
 Thread interruption and `Future` cancellation
- - [Interruption status is restored before propagating a wrapped `InterruptedException`?
+ - [Interruption status is restored before wrapping `InterruptedException` with another exception?
  ](#restore-interruption)
- - [`InterruptedException` is swallowed only in the following kinds of methods?
+ - [`InterruptedException` is swallowed only in the following kinds of methods:
  ](#interruption-swallowing)
-   - `Runnable.run()`, `Callable.call()`, or methods to be passed to executors as lambda tasks
-   - Methods with "try" or "best effort" semantics
+   - `Runnable.run()`, `Callable.call()`, or methods to be passed to executors as lambda tasks; or
+   - Methods with "try" or "best effort" semantics?
  - [`InterruptedException` swallowing is documented for a method?](#interruption-swallowing)
  - [Can use Guava's `Uninterruptibles` to avoid `InterruptedException` swallowing?
  ](#interruption-swallowing)
