@@ -776,7 +776,7 @@ the next item) but also race conditions which can result in a corrupted map (if 
 within lambdas passed into `compute()`-like methods called on the same map?** For example, the
 following code is deadlock-prone:
 ```java
-map.compute(k, (String k, Integer v) -> {
+map.compute(key, (String k, Integer v) -> {
   if (v == null || v == 0) {
     return map.get(DEFAULT_KEY);
   }
