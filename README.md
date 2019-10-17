@@ -1108,7 +1108,8 @@ normally after catching an `InterruptedException` usually makes sense only in tw
  the `Executor` is unknown.
  - Methods with "try" or "best effort" semantics. Documentation for such methods should be clear
  that they stop attempting to do something when the thread is interrupted, restore the interruption
- status of the thread and return.
+ status of the thread and return. For example, `log()` or `sendMetric()` could probably be such
+ methods, as well as `boolean trySendMoney()`, but not `void sendMoney()`.
 
 If a method doesn’t fall into either of these categories, it should propagate `InterruptedException`
 directly or wrapped into another exception (see the previous item), or it should not return normally
