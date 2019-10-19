@@ -73,6 +73,7 @@ Testing
  - [A shared `Random` instance is *not* used from concurrent test workers?](#concurrent-test-random)
  - [Concurrent test workers coordinate their start?](#coordinate-test-workers)
  - [There are more test threads than CPUs (if possible for the test)?](#test-workers-interleavings)
+ - [Assertions in parallel threads and asynchronous code are handled properly?](#concurrent-assert)
 
 Locks
  - [Can use some concurrency utility instead of a lock with conditional `wait` (`await`) calls?
@@ -675,6 +676,25 @@ interleavings and thus test the logic for the absence of race conditions more th
 [JCIP 12.1.6] for more information. The number of available processors on the machine can be
 obtained as [`Runtime.getRuntime().availableProcessors()`](
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Runtime.html#availableProcessors()).
+
+<a name="concurrent-assert"></a>
+[#](#concurrent-assert) T.5. Are there **no regular assertions in code that is executed not in the
+main thread running the unit test?** Consider the following example:
+```java
+@Test public void testServiceListener() {
+  // Missed assertion -- Don't do this!
+  service.addListener(event -> Assert.assertEquals(Event.Type.MESSAGE_RECIEVED, event.getType()));
+  service.sendMessage("test");
+}
+```
+Assuming the `service` executes the code of listeners asynchronously in some internally-managed or
+a shared thread pool, even if the assertion within the listener's lambda fails, JUnit and TestNG
+will think the test has passed.
+
+The solution to this problem is either to pass the data (or thrown exceptions) from a concurrent
+thread back to the main test thread and verify it in the end of the test, or to use
+[ConcurrentUnit](https://github.com/jhalterman/concurrentunit) library which takes over
+the boilerplate associated with the first approach.
 
 <a name="replacing-locks-with-concurrency-utilities"></a>
 ### Locks
