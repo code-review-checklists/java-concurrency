@@ -683,7 +683,7 @@ main thread running the unit test?** Consider the following example:
 ```java
 @Test public void testServiceListener() {
   // Missed assertion -- Don't do this!
-  service.addListener(event -> Assert.assertEquals(Event.Type.MESSAGE_RECIEVED, event.getType()));
+  service.addListener(event -> Assert.assertEquals(Event.Type.MESSAGE_RECEIVED, event.getType()));
   service.sendMessage("test");
 }
 ```
