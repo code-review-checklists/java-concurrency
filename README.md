@@ -50,6 +50,8 @@ Race conditions
  ](#unsafe-concurrent-point-read)
  - [Iteration over a non-thread-safe collection doesn't leak outside of a critical section?
  ](#unsafe-concurrent-iteration)
+ - [A non-thread-safe collection is *not* returned wrapped in `Collections.unmodifiable*()` from
+ a getter in a thread-safe class?](#unsafe-concurrent-iteration)
  - [Non-trivial object is *not* returned from a getter in a thread-safe class?
  ](#concurrent-mutation-race)
  - [No separate getters to an atomically updated state?](#moving-state-race)
@@ -541,11 +543,11 @@ primitive fields.
 collection such as `HashMap` or `ArrayList` **iterated outside of a critical section**, while it may
 be modified concurrently? This could happen by accident when an `Iterable`, `Iterator` or `Stream`
 over a collection is returned from a method of a thread-safe class, even though the iterator or
-stream is created within a critical section. Note that returning unmodifiable collection views like
-`Collections.unmodifiableList()` from getters wrapping collection fields that may be modified
-concurrently doesn't solve this problem. If the collection is relatively small, it should be copied
-entirely, or a copy-on-write collection (see [Sc.3](#non-blocking-collections)) should be used
-instead of a non-thread-safe collection.
+stream is created within a critical section. Note that **returning unmodifiable collection views
+like `Collections.unmodifiableList()` from getters wrapping collection fields that may be modified
+concurrently doesn't solve this problem.** If the collection is relatively small, it should be
+copied entirely, or a copy-on-write collection (see [Sc.3](#non-blocking-collections)) should be
+used instead of a non-thread-safe collection.
 
 Like the previous item, this one applies to growing ArrayLists too.
 
