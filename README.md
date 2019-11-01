@@ -139,6 +139,12 @@ Threads and Executors
  - [Can execute non-blocking computation in `FJP.commonPool()` instead of a custom thread pool?
  ](#use-common-fjp)
  - [`ExecutorService` is shutdown explicitly?](#explicit-shutdown)
+ - [Callback is attached to a `CompletableFuture` (`SettableFuture`) in non-async mode only if
+ either:](#cf-beware-non-async)
+   - the callback is lightweight and non-blocking; or
+   - the future is completed and the callback is attached from the same thread pool?
+ - [Adding a callback to a `CompletableFuture` (`SettableFuture`) in non-async mode is justified?
+ ](#cf-beware-non-async)
 
 Parallel Streams
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
@@ -780,18 +786,30 @@ information.
 
 <a name="non-open-call"></a>
 [#](#non-open-call) Dl.4. Aren’t there **calls to some callbacks (listeners, etc.) that can be
-configured through public API or extension interface calls within critical sections** of a class?
-With such calls, the system might be inherently prone to deadlocks because the external logic
-executed within a critical section might be unaware of the locking considerations and call back into
-the logic of the project, where some more locks may be acquired, potentially forming a locking cycle
-that might lead to deadlock. Let alone the external logic could just perform some time-consuming
-operation and by that harm the efficiency of the system (see [Sc.1](#minimize-critical-sections)).
-See [JCIP 10.1.3] and [EJ Item 79] for more information.
+configured through public API or extension interface calls within critical sections**? With such
+calls, the system might be inherently prone to deadlocks because the external logic executed within
+a critical section may be unaware of the locking considerations and call back into the logic of the
+system, where some more locks may be acquired, potentially forming a locking cycle that might lead
+to a deadlock. Also, the external logic could just perform some time-consuming operation and by
+that harm the efficiency of the system (see [Sc.1](#minimize-critical-sections)). See [JCIP 10.1.3]
+and [EJ Item 79] for more information.
 
 When public API or extension interface calls happen within lambdas passed into `Map.compute()`,
 `computeIfAbsent()`, `computeIfPresent()`, and `merge()`, there is a risk of not only deadlocks (see
-the next item) but also race conditions which can result in a corrupted map (if it's not a
+the next item) but also race conditions which could result in a corrupted map (if it's not a
 `ConcurrentHashMap`, e. g. a simple `HashMap`) or runtime exceptions.
+
+Beware that a [`CompletableFuture`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/CompletableFuture.html
+) or a [`ListenableFuture`](
+https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/ListenableFuture.html
+) returned from a public API opens a door for performing some user-defined callbacks from the place
+where the future is completed, deep inside the library (framework). If the future is completed
+within a critical section, or from an `ExecutorService` whose threads must not block, such as a
+`ForkJoinPool` (see [TE.4](#fjp-no-blocking)) or the worker pool of an I/O library, consider either
+returning a simple `Future`, or documenting that stages shouldn't be attached to this
+`CompletableFuture` in the *default execution mode*. See [TE.7](#cf-beware-non-async) for more
+information.
 
 <a name="chm-nested-calls"></a>
 [#](#chm-nested-calls) Dl.5. Aren't there **calls to methods on a `ConcurrentHashMap` instance
@@ -1058,18 +1076,28 @@ delegate the work to a cached or a shared `ExecutorService` instead?
 application has network problems or the network bandwidth is exhausted due to increased load,
 CachedThreadPools that perform network I/O might begin to create new threads uncontrollably.
 
+Note that completing some `CompletableFuture` or `SettableFuture` from inside a cached thread pool
+and then returning this future to a user might expose the thread pool to executing unwanted actions
+if the future is used improperly: see [TE.7](#cf-beware-non-async) for details.
+
 <a name="fjp-no-blocking"></a>
 [#](#fjp-no-blocking) TE.4. **Aren’t there blocking or I/O operations performed in tasks scheduled
 to a `ForkJoinPool`** (except those performed via a [`managedBlock()`](
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/ForkJoinPool.html#managedBlock(java.util.concurrent.ForkJoinPool.ManagedBlocker)
 ) call)? Parallel `Stream` operations are executed in the common `ForkJoinPool` implicitly, as well
-as the lambdas passed into `CompletableFuture`’s methods whose names end with "Async".
+as the lambdas passed into `CompletableFuture`’s methods whose names end with "Async" but not
+accepting a custom executor.
+
+Note that attaching blocking or I/O operations to a `CompletableFuture` as stage in *default
+execution mode* (via methods like `thenAccept()`, `thenApply()`, `handle()`, etc.) might also
+inadvertently lead to performing them in `ForkJoinPool` from where the future may be completed: see
+[TE.7](#cf-beware-non-async).
 
 This advice should not be taken too far: occasional transient IO (such as that may happen during
 logging) and operations that may rarely block (such as `ConcurrentHashMap.put()` calls) usually
 shouldn’t disqualify all their callers from execution in a `ForkJoinPool` or in a parallel `Stream`.
 See [Parallel Stream Guidance](http://gee.cs.oswego.edu/dl/html/StreamParallelGuidance.html) for the
-more detailed discussion of those tradeoffs.
+more detailed discussion of these tradeoffs.
 
 See also [the section about parallel Streams](#parallel-streams).
 
@@ -1091,6 +1119,53 @@ an `ExecutorService` object is no longer accessible, because some implementation
 ever be called](
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#finalize()) by
 the JVM.
+
+<a name="cf-beware-non-async"></a>
+[#](#cf-beware-non-async) TE.7. Are **non-async stages attached to a `CompletableFuture` simple and
+non-blocking** unless the future is [completed](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/CompletableFuture.html#complete(T)
+) from a thread in the same thread pool as the thread from where a `CompletionStage` is attached?
+This also applies when asynchronous callback is attached using Guava's
+`ListenableFuture.addListener()` or [`Futures.addCallback()`](
+https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/Futures.html#addCallback-com.google.common.util.concurrent.ListenableFuture-com.google.common.util.concurrent.FutureCallback-java.util.concurrent.Executor-
+) methods and [`directExecutor()`](
+https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/MoreExecutors.html#directExecutor--
+) (or an equivalent) is provided as the executor for the callback.
+
+Non-async execution is called *default execution* (or *default mode*) in the documentation for
+[`CompletionStage`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/CompletionStage.html):
+these are methods `thenApply()`, `thenAccept()`, `thenRun()`, `handle()`, etc. Such stages may be
+executed *either* from the thread adding a stage, or from the thread calling `future.complete()`.
+
+If the `CompletableFuture` originates from a library, it's usually unknown in which thread
+(executor) it is completed, therefore, chaining a heavyweight, blocking, or I/O operation to such a
+future might lead to problems described in [TE.3](#cached-thread-pool-no-io),
+[TE.4](#fjp-no-blocking) (if the future is completed from a `ForkJoinPool` or an event loop executor
+in an asynchronous library), and [Dl.4](#non-open-call).
+
+Even if the `CompletableFuture` is created in the same codebase as stages attached to it, but is
+completed in a different thread pool, default stage execution mode leads to non-deterministic
+scheduling of operations. If these operations are heavyweight and/or blocking, this reduces the
+system's operational predictability and robustness, and also creates a subtle dependency between the
+components: e. g. if the component which completes the future decides to migrate this action to a
+`ForkJoinPool`, it could suddenly lead to the problems described in the previous paragraph.
+
+A lightweight, non-blocking operation which is OK to attach to a `CompletableFuture` as a non-async
+stage may be something like incrementing an `AtomicInteger` counter, adding an element to a
+non-blocking queue, putting a value into a `ConcurentHashMap`, or a logging statement.
+
+It's also fine to attach a stage in the default mode if preceded with `if (future.isDone())` check
+which guarantees that the completion stage will be executed immediately in the current thread
+(assuming the current thread belongs to the proper thread pool to perform the stage action).
+
+The specific reason(s) making non-async stage or callback attachment permissible (future completion
+and stage attachment happening in the same thread pool; simple/non-blocking callback; or
+`future.isDone()` check) should be identified in a comment.
+
+See also the Javadoc for [`ListenableFuture.addListener()`](
+https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/ListenableFuture.html#addListener-java.lang.Runnable-java.util.concurrent.Executor-
+) describing this problem.
 
 ### Parallel Streams
 
