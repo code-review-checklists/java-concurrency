@@ -555,6 +555,9 @@ concurrently doesn't solve this problem.** If the collection is relatively small
 copied entirely, or a copy-on-write collection (see [Sc.3](#non-blocking-collections)) should be
 used instead of a non-thread-safe collection.
 
+Note that calling `toString()` on a collection (e. g. in a logging statement) implicitly iterates
+over it.
+
 Like the previous item, this one applies to growing ArrayLists too.
 
 This item applies even to synchronized collections: see [RC.10](#synchronized-collection-iter) for
