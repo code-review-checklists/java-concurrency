@@ -145,6 +145,7 @@ Threads and Executors
    - the future is completed and the callback is attached from the same thread pool?
  - [Adding a callback to a `CompletableFuture` (`SettableFuture`) in non-async mode is justified?
  ](#cf-beware-non-async)
+ - [Is `Thread.sleep()` usage in spin-wait loop justified?](#thread-sleep)
 
 Parallel Streams
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
@@ -1169,6 +1170,37 @@ and stage attachment happening in the same thread pool; simple/non-blocking call
 See also the Javadoc for [`ListenableFuture.addListener()`](
 https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/ListenableFuture.html#addListener-java.lang.Runnable-java.util.concurrent.Executor-
 ) describing this problem.
+
+<a name="thread-sleep"></a>
+[#](#thread-sleep) TE.8. Developers often use busy-wait pattern like
+```java
+class EventHandler {
+  volatile boolean eventNotificationNotReceived;
+
+  void waitForEventAndHandleIt() {
+    while (eventNotificationNotReceived) {
+      Thread.sleep(TimeUnit.SECONDS.toMillis(1L));
+    }
+    readAndProcessEvent();
+  }
+
+  void readAndProcessEvent() {
+    // Read event from some source and process it
+  }
+}
+```
+If there is a busy wait loop, is it explained in a comment why it's needed in the specific case, 
+and that the costs and potential problems associated with busy waiting either don't apply in the specific case, 
+or are outweighed by the benefits?
+
+Pay attention that `Thread.sleep()` **in certain cases** could be replaced with:
+- synchronization primitive (like `Semaphore`)
+- `Object.wait()`/`Object.notify()`
+- `Thread.yield()`
+- `Thread.onSpinWait()`
+
+The mentioned pattern is covered by IDEA's inspection "Busy wait" which is currently off by default.
+It will be on by default when [IDEA-226838](https://youtrack.jetbrains.com/issue/IDEA-226838) is fixed.
 
 ### Parallel Streams
 
