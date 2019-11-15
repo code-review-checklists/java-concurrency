@@ -128,6 +128,8 @@ Non-blocking and partially blocking code
  ](#swap-state-atomically)
  - [Boundaries of non-blocking or benignly racy code are identified with WARNING comments?
  ](#non-blocking-warning)
+ - [Busy waiting (spin loop), all calls to `Thread.yield()` and `Thread.onSpinWait()` are justified?
+ ](#justify-busy-wait)
 
 Threads and Executors
  - [Thread is named?](#name-threads)
@@ -145,7 +147,6 @@ Threads and Executors
    - the future is completed and the callback is attached from the same thread pool?
  - [Adding a callback to a `CompletableFuture` (`SettableFuture`) in non-async mode is justified?
  ](#cf-beware-non-async)
- - [Is `Thread.sleep()` usage in spin-wait loop justified?](#thread-sleep)
 
 Parallel Streams
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
@@ -245,7 +246,8 @@ Wherever some logic is parallelized or the execution is delegated to another thr
 comments explaining why it’s worse or inappropriate to execute the logic sequentially or in the same
 thread? See [PS.1](#justify-parallel-stream-use) regarding this.
 
-See also [NB.3](#non-blocking-warning) regarding justification of non-blocking and racy code.
+See also [NB.3](#non-blocking-warning) and [NB.4](#justify-busy-wait) regarding justification of
+non-blocking code, racy code, and busy waiting.
 
 <a name="threading-flow-model"></a>
 [#](#threading-flow-model) Dc.2. If the patch introduces a new subsystem that uses threads or thread
@@ -286,10 +288,10 @@ pattern](https://errorprone.info/bugpattern/Immutable)).
 
 <a name="name-patterns"></a>
 [#](#name-patterns) Dc.4. For subsystems, classes, methods, and fields that use some concurrency
-design patterns, either high-level (such as those mentioned in [Dn.2](#use-patterns)) or low-level
-(such as double-checked locking, see [the relevant section](#lazy-init)): are the used **concurrency
-patterns pronounced in the design or implementation comments** for the respective subsystems,
-classes, methods, and fields? This helps readers to make sense out of the code quicker.
+design patterns, either high-level, such as those mentioned in [Dn.2](#use-patterns), or low-level,
+such as [double-checked locking](#lazy-init) or [spin looping](#justify-busy-wait): are the used
+**concurrency patterns pronounced in the design or implementation comments** for the respective
+subsystems, classes, methods, and fields? This helps readers to make sense out of the code quicker.
 
 Pronouncing the used patterns in comments may be replaced with more succinct documentation
 annotations, such as `@Immutable` ([Dc.3](#immutable-thread-safe)), `@GuardedBy`
@@ -416,6 +418,9 @@ The field should at least be `volatile` to ensure eventual visibility of concurr
 [JCIP 3.1, 3.1.4], and [VNA00-J](
 https://wiki.sei.cmu.edu/confluence/display/java/VNA00-J.+Ensure+visibility+when+accessing+shared+primitive+variables)
 for more details and examples.
+
+Even if the respective field if `volatile`, busy waiting for a condition in a loop can be abused
+easily and therefore should be justified in a comment: see [NB.4](#justify-busy-wait).
 
 [Dc.10](#plain-field) also demands adding explaining comments to mutable fields which are neither
 `volatile` nor annotated with `@GuardedBy` which should inevitably lead to the discovery of the
@@ -1058,6 +1063,46 @@ blocking code, and benignly racy code (see [Dc.8](#document-benign-race) and
  2. **Warn developers that changes in the following code should be made (and reviewed) extremely
  carefully.**
 
+<a name="justify-busy-wait"></a>
+[#](#justify-busy-wait) NB.4. If some condition is awaited in a (busy) loop, like in the following
+example:
+```java
+volatile boolean condition;
+
+// in some method:
+    while (!condition) {
+      // Or Thread.sleep/yield/onSpinWait, or no statement, i. e. a pure spin wait
+      TimeUnit.SECONDS.sleep(1L);
+    }
+    // ... do something when condition is true
+```
+**Is it explained in a comment why busy waiting is needed in the specific case**, and why the
+costs and potential problems associated with busy waiting (see [JCIP 12.4.2] and [JCIP 14.1.1])
+either don't apply in the specific case or are outweighed by the benefits?
+
+If there is no good reason for spin waiting, it's preferable to synchronize explicitly using a tool
+such as [`Semaphore`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Semaphore.html),
+[`CountDownLatch`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/CountDownLatch.html
+), or [`Exchanger`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Exchanger.html),
+or if the logic for which the spin loop awaits is executed in some `ExecutorService`, it's better to
+add a callback to the corresponding `CompletableFuture` or [`ListenableFuture`](
+https://github.com/google/guava/wiki/ListenableFutureExplained) (check [TE.7](#cf-beware-non-async)
+about doing this properly).
+
+Since `Thread.yield()` and `Thread.onSpinWait()` are rarely, if ever, useful outside of spin loops,
+this item could also be interpreted as that there should be a comment to every call to either of
+these methods, explaining either why they are called outside of a spin loop, or justifying the spin
+loop itself.
+
+In any case, the field checked in the busy loop must be `volatile`: see
+[IS.2](#non-volatile-visibility) for details.
+
+The busy wait pattern is covered by IntelliJ IDEA's inspections "Busy wait" and "while loop spins on
+field".
+
 ### Threads and Executors
 
 <a name="name-threads"></a>
@@ -1170,37 +1215,6 @@ and stage attachment happening in the same thread pool; simple/non-blocking call
 See also the Javadoc for [`ListenableFuture.addListener()`](
 https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/ListenableFuture.html#addListener-java.lang.Runnable-java.util.concurrent.Executor-
 ) describing this problem.
-
-<a name="thread-sleep"></a>
-[#](#thread-sleep) TE.8. Developers often use busy-wait pattern like
-```java
-class EventHandler {
-  volatile boolean eventNotificationNotReceived;
-
-  void waitForEventAndHandleIt() {
-    while (eventNotificationNotReceived) {
-      Thread.sleep(TimeUnit.SECONDS.toMillis(1L));
-    }
-    readAndProcessEvent();
-  }
-
-  void readAndProcessEvent() {
-    // Read event from some source and process it
-  }
-}
-```
-If there is a busy wait loop, is it explained in a comment why it's needed in the specific case, 
-and that the costs and potential problems associated with busy waiting either don't apply in the specific case, 
-or are outweighed by the benefits?
-
-Pay attention that `Thread.sleep()` **in certain cases** could be replaced with:
-- synchronization primitive (like `Semaphore`)
-- `Object.wait()`/`Object.notify()`
-- `Thread.yield()`
-- `Thread.onSpinWait()`
-
-The mentioned pattern is covered by IDEA's inspection "Busy wait" which is currently off by default.
-It will be on by default when [IDEA-226838](https://youtrack.jetbrains.com/issue/IDEA-226838) is fixed.
 
 ### Parallel Streams
 
