@@ -180,6 +180,7 @@ Time
  ](#time-going-backward)
  - [Units for a time variable are identified in the variable's name or via `TimeUnit`?](#time-units)
  - [Negative timeouts and delays are treated as zeros?](#treat-negative-timeout-as-zero)
+ - [Could usage of TimeUnit be simplified?](#time-unit-seconds-sleep)
  
 `ThreadLocal`
  - [`ThreadLocal` can be `static final`?](#tl-static-final)
@@ -1327,6 +1328,19 @@ parameter next to a "timeout" parameter. This is the preferred option for public
 [#](#treat-negative-timeout-as-zero) Tm.4. **Do methods that have "timeout" and "delay" parameters
 treat negative arguments as zeros?** This is to obey the principle of least astonishment because all
 timed blocking methods in classes from `java.util.concurrent.*` follow this convention.
+
+<a name="time-unit-seconds-sleep"></a>
+[#](#time-unit-seconds-sleep) Tm.5. **Could usage of TimeUnit be simplified?**
+In case the code has instruction like
+```java
+Thread.sleep(TimeUnit.SECONDS.toMillis(2));
+```
+it can be simplified to
+```java
+TimeUnit.SECONDS.sleep(2));
+```
+Note, that when [IDEA-216814](https://youtrack.jetbrains.com/issue/IDEA-216814) is fixed IDEA will detect and
+transform such statements automatically.
 
 ### `ThreadLocal`
 
