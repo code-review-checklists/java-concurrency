@@ -419,7 +419,7 @@ The field should at least be `volatile` to ensure eventual visibility of concurr
 https://wiki.sei.cmu.edu/confluence/display/java/VNA00-J.+Ensure+visibility+when+accessing+shared+primitive+variables)
 for more details and examples.
 
-Even if the respective field if `volatile`, busy waiting for a condition in a loop can be abused
+Even if the respective field is `volatile`, busy waiting for a condition in a loop can be abused
 easily and therefore should be justified in a comment: see [NB.4](#justify-busy-wait).
 
 [Dc.10](#plain-field) also demands adding explaining comments to mutable fields which are neither
