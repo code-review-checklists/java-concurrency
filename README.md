@@ -10,6 +10,14 @@ Design
    - Instance confinement
    - Thread/Task/Serial thread confinement
    - Active object
+ - Code smells, identifying that a class or a subsystem could potentially be redesigned for better:
+   - [Usage of `synchronized` with `wait`/`notify` instead of concurrency utilities
+   ](#avoid-wait-notify)
+   - [Nested critical sections](#avoid-nested-critical-sections)
+   - [Extension API call within a critical section](#non-open-call)
+   - [Large critical section](#minimize-critical-sections)
+   - [Waiting in a loop for some result](#justify-busy-wait)
+   - [`ThreadLocal`, especially when non-static](#threadlocal-design)
 
 Documentation
  - [Thread safety is justified in comments?](#justify-document)
@@ -172,6 +180,15 @@ Time
  ](#time-going-backward)
  - [Units for a time variable are identified in the variable's name or via `TimeUnit`?](#time-units)
  - [Negative timeouts and delays are treated as zeros?](#treat-negative-timeout-as-zero)
+ 
+`ThreadLocal`
+ - [`ThreadLocal` can be `static final`?](#tl-static-final)
+ - [Can redesign a subsystem to avoid usage of `ThreadLocal` (esp. non-static one)?
+ ](#threadlocal-design)
+ - [`ThreadLocal` is *not* used just to avoid moderate amount of allocation?
+ ](#threadlocal-performance)
+ - [Considered replacing a non-static `ThreadLocal` with an instance-confined `Map<Thread, ...>`?
+ ](#tl-instance-chm)
 
 Thread safety of Cleaners and native code
  - [`close()` is concurrently idempotent in a class with a `Cleaner` or `finalize()`?
@@ -216,7 +233,8 @@ https://en.wikipedia.org/wiki/Staged_event-driven_architecture).
 **Instance confinement.** Objects of some root type encapsulate some complex hierarchical child
 state. Root objects are solitarily responsible for the safety of accesses and modifications to the
 child state from multiple threads. In other words, composed objects are synchronized rather than
-synchronized objects are composed. See [JCIP 4.2, 10.1.3, 10.1.4].
+synchronized objects are composed. See [JCIP 4.2, 10.1.3, 10.1.4]. [TL.4](#tl-instance-chm) touches
+on instance confinement of thread-local state.
 
 **Thread/Task/Serial thread confinement.** Some state is made local to a thread using top-down
 pass-through parameters or `ThreadLocal`. See [JCIP 3.3]. Task confinement is a variation of the
@@ -1309,6 +1327,52 @@ parameter next to a "timeout" parameter. This is the preferred option for public
 [#](#treat-negative-timeout-as-zero) Tm.4. **Do methods that have "timeout" and "delay" parameters
 treat negative arguments as zeros?** This is to obey the principle of least astonishment because all
 timed blocking methods in classes from `java.util.concurrent.*` follow this convention.
+
+### `ThreadLocal`
+
+<a name="tl-static-final"></a>
+[#](#tl-static-final) TL.1. **Can `ThreadLocal` field be `static final`?** There are three cases
+when a `ThreadLocal` cannot be static:
+- It *holds some state specific to the containing instance object*, rather than, for example,
+  reusable objects to avoid allocations (which would be the same for all `ThreadLocal`-containing
+  instances).
+- A method using a `ThreadLocal` may call another method (or the same method, recursively) that also
+  uses this `ThreadLocal`, but on a different containing object.
+- There is a class (or `enum`) modelling a specific type of `ThreadLocal` usage, and there are only
+  limited number of instances of this class in the JVM: i. e. all are constants stored in
+  `static final` fields, or `enum` constants.
+
+If a usage of `ThreadLocal` doesn't fall into either of these categories, it can be `static final`.
+
+There is an inspection "ThreadLocal field not declared static final" in IntelliJ IDEA which
+corresponds to this item.
+
+<a name="threadlocal-design"></a>
+[#](#threadlocal-design) TL.2. Doesn't a **`ThreadLocal` mask issues with the code, such as poor
+control flow or data flow design?** Is it possible to redesign the system without using
+`ThreadLocal`, would that be simpler? This is especially true for instance-level (non-static)
+`ThreadLocal` fields; see also [TL.1](#tl-static-final) and [TL.4](#tl-instance-chm) about them.
+
+See [Dc.2](#threading-flow-model) about the importance of articulating the control flow and the data
+flow of a subsystem which may help to uncover other issues with the design.
+
+<a name="threadlocal-performance"></a>
+[#](#threadlocal-performance) TL.3. Isn't a **`ThreadLocal` used only to reuse some small heap
+objects, cheap to allocate and initialize, that would otherwise need to be allocated relatively
+infrequently?** In this case, the cost of accessing a `ThreadLocal` would likely outweigh the
+benefit from reducing allocations. The evidence should be supplied that introducing a `ThreadLocal`
+shortens the GC pauses and/or increases the overall throughput of the system.
+
+<a name="tl-instance-chm"></a>
+[#](#tl-instance-chm) TL.4. If the threads which execute code with usage of a non-static
+`ThreadLocal` are long-living and there is a fixed number of them (e. g. workers of a fixed-sized
+`ThreadPoolExecutor`) and there is a greater number of shorter-living `ThreadLocal`-containing
+objects, was it considered to **replace the instance-level `ThreadLocal<Val>` with a
+`ConcurrentHashMap<Thread, Val> threadLocalValues` confined to the objects**, accessed via like
+`threadLocalValues.get(Thread.currentThread())`? This approach requires some confidence and
+knowledge about the threading model of the subsystem (see [Dc.2](threading-flow-model)), though it
+may also be trivial if Active Object pattern is used (see [Dn.2](#use-patterns)), but is much
+friendlier to GC because no short-living weak references are produced.
 
 ### Thread safety of Cleaners and native code
 
