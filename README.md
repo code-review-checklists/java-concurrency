@@ -1368,7 +1368,7 @@ shortens the GC pauses and/or increases the overall throughput of the system.
 `ThreadLocal` are long-living and there is a fixed number of them (e. g. workers of a fixed-sized
 `ThreadPoolExecutor`) and there is a greater number of shorter-living `ThreadLocal`-containing
 objects, was it considered to **replace the instance-level `ThreadLocal<Val>` with a
-`ConcurrentHashMap<Thread, Val> threadLocalValues` confined to the objects**, accessed via like
+`ConcurrentHashMap<Thread, Val> threadLocalValues` confined to the objects**, accessed like
 `threadLocalValues.get(Thread.currentThread())`? This approach requires some confidence and
 knowledge about the threading model of the subsystem (see [Dc.2](threading-flow-model)), though it
 may also be trivial if Active Object pattern is used (see [Dn.2](#use-patterns)), but is much
