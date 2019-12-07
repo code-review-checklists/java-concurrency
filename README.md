@@ -399,6 +399,9 @@ Apart from the explanations why the partially blocking or racy code is safe, the
 comments justifying such error-prone code and warning the developers that the code should be
 modified and reviewed with double attention: see [NB.3](#non-blocking-warning).
 
+There is an inspection "Field accessed in both synchronized and unsynchronized contexts" in IntelliJ
+IDEA which helps to find classes with unbalanced synchronization.
+
 <a name="justify-volatile"></a>
 [#](#justify-volatile) Dc.9. Regarding every field with a `volatile` modifier: **does it really need
 to be `volatile`**? Does the Javadoc comment for the field explain why the semantics of `volatile`
@@ -467,6 +470,9 @@ unbalanced synchronization is problematic.
 See also [RC.2](#unsafe-concurrent-point-read) regarding unbalanced synchronization of read accesses
 to mutable objects, such as collections.
 
+There is a relevant inspection "Field accessed in both synchronized and unsynchronized contexts" in
+IntelliJ IDEA.
+
 <a name="server-framework-sync"></a>
 [#](#server-framework-sync) IS.4. **Is the business logic written for server frameworks
 thread-safe?** This includes:
@@ -484,6 +490,9 @@ properly synchronized or access only concurrent collections and classes.
 [#](#dateformat) IS.5. **Calls to `parse()` and `format()` on a shared instance of `DateFormat` are
 synchronized**, e. g. if a `DateFormat` is stored in a static field? Although `parse()` and
 `format()` may look "read-only", they actually mutate the receiving `DateFormat` object.
+
+An inspection "Non thread-safe static field access" in IntelliJ IDEA helps to catch such concurrency
+bugs.
 
 ### Excessive thread safety
 
@@ -800,6 +809,9 @@ rid of nested critical sections**? Sometimes a class could be split into several
 or some work that is done within a single thread could be split between several threads or tasks
 which communicate via concurrent queues. See [JCIP 5.3] for more information about the
 producer-consumer pattern.
+
+There is an inspection "Nested 'synchronized' statement" in IntelliJ IDEA corresponding to this
+item.
 
 <a name="document-locking-order"></a>
 [#](#document-locking-order) Dl.2. If restructuring a thread-safe class to avoid nested critical
