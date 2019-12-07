@@ -1112,6 +1112,10 @@ add a callback to the corresponding `CompletableFuture` or [`ListenableFuture`](
 https://github.com/google/guava/wiki/ListenableFutureExplained) (check [TE.7](#cf-beware-non-async)
 about doing this properly).
 
+In test code waiting for some condition, a library such as [Awaitility](
+https://github.com/awaitility/awaitility) could be used instead of explicit looping with
+`Thread.sleep` calls.
+
 Since `Thread.yield()` and `Thread.onSpinWait()` are rarely, if ever, useful outside of spin loops,
 this item could also be interpreted as that there should be a comment to every call to either of
 these methods, explaining either why they are called outside of a spin loop, or justifying the spin
