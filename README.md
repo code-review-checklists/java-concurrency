@@ -157,6 +157,8 @@ Threads and Executors
    - the future is completed and the callback is attached from the same thread pool?
  - [Adding a callback to a `CompletableFuture` (`SettableFuture`) in non-async mode is justified?
  ](#cf-beware-non-async)
+ - [Actions are delayed via a `ScheduledExecutorService` rather than `Thread.sleep()`?
+ ](#no-sleep-schedule)
 
 Parallel Streams
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
@@ -1172,6 +1174,8 @@ execution mode* (via methods like `thenAccept()`, `thenApply()`, `handle()`, etc
 inadvertently lead to performing them in `ForkJoinPool` from where the future may be completed: see
 [TE.7](#cf-beware-non-async).
 
+`Thread.sleep()` is a blocking operation.
+
 This advice should not be taken too far: occasional transient IO (such as that may happen during
 logging) and operations that may rarely block (such as `ConcurrentHashMap.put()` calls) usually
 shouldn’t disqualify all their callers from execution in a `ForkJoinPool` or in a parallel `Stream`.
@@ -1245,6 +1249,22 @@ and stage attachment happening in the same thread pool; simple/non-blocking call
 See also the Javadoc for [`ListenableFuture.addListener()`](
 https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/ListenableFuture.html#addListener-java.lang.Runnable-java.util.concurrent.Executor-
 ) describing this problem.
+
+<a name="no-sleep-schedule"></a>
+[#](#no-sleep-schedule) TE.8. **A task or action is executed with a delay via a
+[`ScheduledExecutorService`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/ScheduledExecutorService.html)
+rather than by calling `Thread.sleep()` before performing the work** or submitting the task to
+an executor? `ScheduledExecutorService` allows to execute many such tasks on a small number of
+threads, while the approach with `Thread.sleep` requires a dedicated thread for every delayed
+action. Sleeping in the context of an unknown executor (if there is insufficient *concurrent access
+documentation* for the method, as per [Dc.1](#justify-document), or if this is a
+concurrency-agnostic library method) before submitting the task to an executor is also bad: the
+context executor may not tolerate blocking calls such as `Thread.sleep`, see
+[TE.4](#fjp-no-blocking) for details.
+
+This item equally applies to scheduling one-shot and recurrent delayed actions, there are methods
+for both scenarios in `ScheduledExecutorService`.
 
 ### Parallel Streams
 
