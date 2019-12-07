@@ -10,7 +10,8 @@ Design
    - Instance confinement
    - Thread/Task/Serial thread confinement
    - Active object
- - Code smells, identifying that a class or a subsystem could potentially be redesigned for better:
+ - **Code smells**, identifying that a class or a subsystem could potentially be redesigned for
+ better:
    - [Usage of `synchronized` with `wait`/`notify` instead of concurrency utilities
    ](#avoid-wait-notify)
    - [Nested critical sections](#avoid-nested-critical-sections)
@@ -18,6 +19,7 @@ Design
    - [Large critical section](#minimize-critical-sections)
    - [Waiting in a loop for some result](#justify-busy-wait)
    - [`ThreadLocal`, especially when non-static](#threadlocal-design)
+   - [`Thread.sleep()`](#no-sleep-schedule)
 
 Documentation
  - [Thread safety is justified in comments?](#justify-document)
