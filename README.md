@@ -143,6 +143,8 @@ Threads and Executors
  - [Thread is named?](#name-threads)
  - [Can use `ExecutorService` instead of creating a new `Thread` each time some method is called?
  ](#reuse-threads)
+ - [`ExecutorService`s are *not* created within short-lived objects (but rather reused)?
+ ](#reuse-threads)
  - [No network I/O in a CachedThreadPool?](#cached-thread-pool-no-io)
  - [No blocking (incl. I/O) operations in a `ForkJoinPool` or in a parallel Stream pipeline?
  ](#fjp-no-blocking)
@@ -1136,6 +1138,11 @@ whether a `ThreadGroup` should be specified. Many of such rules can be effective
 [#](#reuse-threads) TE.2. Aren’t there threads created and started, but not stored in fields, a-la
 **`new Thread(...).start()`**, in some methods that may be called repeatedly? Is it possible to
 delegate the work to a cached or a shared `ExecutorService` instead?
+
+A weaker form of this problem is when a **`Thread` (or an `ExecutorService`) is created and managed
+within objects (in other words, [active objects](https://en.wikipedia.org/wiki/Active_object)) that
+are relatively short-lived.** Is it possible to reuse executors by creating them one level up the
+stack and passing shared executors to constructors of the short-lived objects?
 
 <a name="cached-thread-pool-no-io"></a>
 [#](#cached-thread-pool-no-io) TE.3. **Aren’t some network I/O operations performed in an
