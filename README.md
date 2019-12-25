@@ -1373,9 +1373,9 @@ Future<Response> makeQuery(String query) {
     // Explicit catch preserves the semantics of the original version of makeQuery() most closely.
     // If compile(query) is an expensive computation, it may be undesirable to schedule it to
     // someBlockingIoExecutor() by simply moving compile(query) into the lambda below.
-    // Another alternative is
-    // supplyAsync(() -> compile(query)).thenApply(service::remoteCall, someBlockingIoExecutor());
-    // scheduling compile(query) to the common FJP.
+    // Another alternative is scheduling compile(query) to the common FJP:
+    // CompletableFuture.supplyAsync(() -> compile(query))
+    //   .thenApplyAsync(service::remoteCall, someBlockingIoExecutor());
     CompletableFuture<Response> f = new CompletableFuture<>();
     f.completeExceptionally(e);
     return f; // Or use Guava's immediateFailedFuture()
