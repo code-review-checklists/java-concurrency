@@ -215,13 +215,15 @@ Thread safety of Cleaners and native code
 ### Design
 
 <a name="rationalize"></a>
-[#](#rationalize) Dn.1. If the patch introduces a new subsystem with concurrent code, is **the
-necessity for concurrency or thread safety rationalized in the patch description**? Is there a
-discussion of alternative design approaches that could simplify the concurrency model of the code
-(see the next item)?
+[#](#rationalize) Dn.1. If the patch introduces a new subsystem (class, method) with concurrent
+code, is **the necessity for concurrency or thread safety rationalized in the patch description**?
+Is there a discussion of alternative design approaches that could simplify the concurrency model of
+the code (see the next item)?
 
 A way to nudge thinking about concurrency design is demanding the usage of concurrency tools and
-language constructs be [justified in comments](#justify-document).
+language constructs to be [justified in comments](#justify-document).
+
+See also an item about [unneeded thread-safety of classes and methods](#unneeded-thread-safety).
 
 <a name="use-patterns"></a>
 [#](#use-patterns) Dn.2. Is it possible to apply one or several design patterns (some of them are
