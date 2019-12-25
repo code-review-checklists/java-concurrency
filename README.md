@@ -166,6 +166,12 @@ Parallel Streams
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
  - [Comment before a parallel Streams pipeline explains how it takes more than 100us in total?
  ](#justify-parallel-stream-use)
+
+Futures
+ - [Non-blocking computation needs to be decorated as a `Future`?](#unneeded-future)
+ - [Method returning a `Future` doesn't block?](#future-method-no-blocking)
+ - [In a method returning a `Future`, considered wrapping an "expected" exception within the `Future`?
+ ](#future-method-failure-paths)
  
 Thread interruption and `Future` cancellation
  - [Interruption status is restored before wrapping `InterruptedException` with another exception?
@@ -272,6 +278,10 @@ thread? See [PS.1](#justify-parallel-stream-use) regarding this.
 
 See also [NB.3](#non-blocking-warning) and [NB.4](#justify-busy-wait) regarding justification of
 non-blocking code, racy code, and busy waiting.
+
+If the usage of concurrency tools is not justified, there is a possibility of code ending up with
+[unnecessary thread-safety](#unneeded-thread-safety), [redundant atomics](#redundant-atomics),
+[redundant `volatile` modifiers](#justify-volatile), or [unneeded Futures](#unneeded-future).
 
 <a name="threading-flow-model"></a>
 [#](#threading-flow-model) Dc.2. If the patch introduces a new subsystem that uses threads or thread
@@ -536,7 +546,8 @@ be accessed (method called) concurrently from multiple threads (without *happens
 relationships between the accesses or calls)? Can a class (method) be simplified by making it
 non-thread-safe?
 
-See also [Dc.9](#justify-volatile) about potentially unneeded `volatile` modifiers. 
+See also [Ft.1](#unneeded-future) about unneeded wrapping of a computation into a `Future` and
+[Dc.9](#justify-volatile) about potentially unneeded `volatile` modifiers.
 
 This item is a close relative of [Dn.1](#rationalize) (about rationalizing concurrency and thread
 safety in the patch description) and [Dc.1](#justify-document) (about justifying concurrency in
@@ -1295,6 +1306,85 @@ logic that is called from the parallel stream operation might become blocking ac
 comment, it’s harder to notice the discrepancy and the fact that the computation is no longer a good
 fit for parallel Streams. It can be fixed by calling the non-blocking version of the logic again or
 by using a simple sequential `Stream` instead of a parallel `Stream`.
+
+### Futures
+
+<a name="unneeded-future"></a>
+[#](#unneeded-future) Ft.1. Does a method returning a `Future` do some blocking operation
+asynchronously? If it doesn't, **was it considered to perform non-blocking computation logic and
+return the result directly from the method, rather than within a `Future`?** There are situations
+when someone might still want to return a `Future` wrapping some non-blocking computation,
+essentially relieving the users from writing boilerplate code like
+`CompletableFuture.supplyAsync(obj::expensiveComputation)` if all of them want to run the method
+asynchronously. But if at least some of the clients don't need the indirection, it's better not to
+wrap the logic into a `Future` prematurely and give the users of the API a choice to do this
+themselves.
+
+See also [ETS.3](#unneeded-thread-safety) about unneeded thread-safety of a method.
+
+<a name="future-method-no-blocking"></a>
+[#](#future-method-no-blocking) Ft.2. Aren't there **blocking operations in a method returning a
+`Future` before asynchronous execution is started**, and is it started at all? Here is the
+antipattern:
+```java
+Future<Salary> getSalary(Employee employee) throws ConnectionException {
+  Branch branch = retrieveBranch(employee); // A database or an RPC call
+  return CompletableFuture.supplyAsync(() -> {
+    return retrieveSalary(branch, employee); // Another database or an RPC call
+  }, someBlockingIoExecutor());
+}
+```
+Blocking the caller thread is unexpected for a user seeing a method returning a `Future`.
+
+An example completely without asynchrony:
+```java
+Future<Salary> getSalary(Employee employee) throws ConnectionException {
+  SalaryDTO salaryDto = retrieveSalary(employee); // A database or an RPC call
+  Salary salary = toSalary(salaryDto);
+  return completedFuture(salary); // Or Guava's immediateFuture(), Scala's successful()
+}
+```
+
+If the `retrieveSalary()` method is not blocking itself, the `getSalary()` [may not need to return
+a `Future`](#unneeded-future).
+
+Another problem with making blocking calls before scheduling an `Future` is that the resulting code
+has [multiple failure paths](#future-method-failure-paths): either the future may complete
+exceptionally, or the method itself may throw an exception (typically from the blocking operation),
+which is illustrated by `getSalary() throws ConnectionException` in the above examples.
+
+<a name="future-method-failure-paths"></a>
+[#](#future-method-failure-paths) Ft.3. If a method returns a `Future` and some logic in the
+beginning of it may lead to an *expected failure* (i. e. not a result of a programming bug), **was
+it considered to propagate an expected failure by a `Future` completed exceptionally, rather than
+throwing from the method?** For example, the following method:
+```java
+Future<Response> makeQuery(String query) throws InvalidQueryException {
+  Request req = compile(query); // Can throw an InvalidQueryException
+  return CompletableFuture.supplyAsync(() -> service.remoteCall(req), someBlockingIoExecutor());
+}
+```
+May be converted into:
+```java
+Future<Response> makeQuery(String query) {
+  try {
+    Request req = compile(query);
+  } catch (InvalidQueryException e) {
+    // Explicit catch preserves the semantics of the original version of makeQuery() most closely.
+    // If compile(query) is an expensive computation, it may be undesirable to schedule it to
+    // someBlockingIoExecutor() by simply moving compile(query) into the lambda below.
+    // Another alternative is
+    // supplyAsync(() -> compile(query)).thenApply(service::remoteCall, someBlockingIoExecutor());
+    // scheduling compile(query) to the common FJP.
+    CompletableFuture<Response> f = new CompletableFuture<>();
+    f.completeExceptionally(e);
+    return f; // Or use Guava's immediateFailedFuture()
+  }
+  return CompletableFuture.supplyAsync(() -> service.remoteCall(req), someBlockingIoExecutor());
+}
+```
+The point of this refactoring is unification of failure paths, so that the users of the API don't
+have to deal with multiple different ways of handling errors from the method.
 
 ### Thread interruption and `Future` cancellation
 
