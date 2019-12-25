@@ -170,8 +170,8 @@ Parallel Streams
 Futures
  - [Non-blocking computation needs to be decorated as a `Future`?](#unneeded-future)
  - [Method returning a `Future` doesn't block?](#future-method-no-blocking)
- - [In a method returning a `Future`, considered wrapping an "expected" exception within the `Future`?
- ](#future-method-failure-paths)
+ - [In a method returning a `Future`, considered wrapping an "expected" exception as a failed
+ `Future`?](#future-method-failure-paths)
  
 Thread interruption and `Future` cancellation
  - [Interruption status is restored before wrapping `InterruptedException` with another exception?
