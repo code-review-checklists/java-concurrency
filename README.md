@@ -1330,6 +1330,7 @@ See also [ETS.3](#unneeded-thread-safety) about unneeded thread-safety of a meth
 `Future` before asynchronous execution is started**, and is it started at all? Here is the
 antipattern:
 ```java
+// DON'T DO THIS
 Future<Salary> getSalary(Employee employee) throws ConnectionException {
   Branch branch = retrieveBranch(employee); // A database or an RPC call
   return CompletableFuture.supplyAsync(() -> {
@@ -1341,6 +1342,7 @@ Blocking the caller thread is unexpected for a user seeing a method returning a 
 
 An example completely without asynchrony:
 ```java
+// DON'T DO THIS
 Future<Salary> getSalary(Employee employee) throws ConnectionException {
   SalaryDTO salaryDto = retrieveSalary(employee); // A database or an RPC call
   Salary salary = toSalary(salaryDto);
