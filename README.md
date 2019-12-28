@@ -62,6 +62,8 @@ Race conditions
  ](#unsafe-concurrent-iteration)
  - [A non-thread-safe collection is *not* returned wrapped in `Collections.unmodifiable*()` from
  a getter in a thread-safe class?](#unsafe-concurrent-iteration)
+ - [A synchronized collection is not returned from a getter? in a thread-safe class?
+ ](#unsafe-concurrent-iteration)
  - [Non-trivial mutable object is *not* returned from a getter in a thread-safe class?
  ](#concurrent-mutation-race)
  - [No separate getters to an atomically updated state?](#moving-state-race)
@@ -78,7 +80,9 @@ Race conditions
  - [Concurrent invalidation race is not possible on a lazily initialized state?
  ](#cache-invalidation-race)
  - [Iteration, Stream pipeline, or copying a `Collections.synchronized*()` collection is protected
- by a lock?](#synchronized-collection-iter)
+ by the lock?](#synchronized-collection-iter)
+ - [A synchronized collection is passed into `addAll()`, `removeAll()`, or `putAll()` under the
+ lock?](#synchronized-collection-iter)
 
 Testing
  - [Unit tests for thread-safe classes are multi-threaded?](#multi-threaded-tests)
@@ -717,9 +721,21 @@ more scalable than Guava Cache: see [Sc.9](#caffeine).
 Stream pipeline using a synchronized collection as a source is protected by `synchronized (coll)`?**
 See [the Javadoc](
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Collections.html#synchronizedCollection(java.util.Collection))
-for examples and details. This also applies to passing synchronized collections into copy
-constructors or static factory methods of other collections because they implicitly iterate over the
-source collection.
+for examples and details.
+
+This also applies to passing synchronized collections into:
+ - Copy constructors of other collections, e. g. `new ArrayList<>(synchronizedList)`
+ - Static factory methods of other collections, e. g. `List.copyOf()`, `Set.copyOf()`,
+ `ImmutableMap.copyOf()`
+ - Bulk methods on other collections:
+   - `otherColl.containsAll(synchronizedColl)`
+   - `otherColl.addAll(synchronizedColl)`
+   - `otherColl.removeAll(synchronizedColl)`
+   - `otherMap.putAll(synchronizedMap)`
+   - `otherColl.containsAll(synchronizedMap.keySet())`
+   - Etc.
+
+Because in all these cases there is an implicit iteration on the source collection.
 
 See also [RC.3](#unsafe-concurrent-iteration) about unprotected iteration over non-thread-safe
 collections.
