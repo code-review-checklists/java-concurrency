@@ -1370,14 +1370,11 @@ exceptionally, or the method itself may throw an exception (typically from the b
 which is illustrated by `getSalary() throws ConnectionException` in the above examples.
 
 This advice also applies when a method returns any object representing an asynchronous execution
-other than `Future`, such as [`Flow.Publisher`](
+other than `Future`, such as `Deferred`, [`Flow.Publisher`](
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Flow.Publisher.html
 ), [`org.reactivestreams.Publisher`](
 https://www.reactive-streams.org/reactive-streams-1.0.3-javadoc/org/reactivestreams/Publisher.html),
-RxJava's [`Observable`](http://reactivex.io/RxJava/javadoc/io/reactivex/Observable.html), or
-Kotlin's [`Deferred`](
-https://kotlin.github.io/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-deferred/index.html
-).
+or RxJava's [`Observable`](http://reactivex.io/RxJava/javadoc/io/reactivex/Observable.html).
 
 <a name="future-method-failure-paths"></a>
 [#](#future-method-failure-paths) Ft.3. If a method returns a `Future` and some logic in the
@@ -1416,7 +1413,7 @@ have to deal with multiple different ways of handling errors from the method.
 
 Similarly to [the previous item](#future-method-no-blocking), this consideration also applies when
 a method returns any object representing an asynchronous execution other than `Future`, such as
-`Publisher` or Kotlin's `Deferred`.
+`Deferred`, `Publisher`, or `Observable`.
 
 ### Thread interruption and `Future` cancellation
 
