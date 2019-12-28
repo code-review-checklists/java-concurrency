@@ -399,7 +399,8 @@ See [JCIP 2.4] for more information about `@GuardedBy`.
 
 Usage of `@GuardedBy` is especially beneficial in conjunction with [Error Prone](
 https://errorprone.info/) tool which is able to [statically check for unguarded accesses to fields
-and methods with @GuardedBy annotations](https://errorprone.info/bugpattern/GuardedBy).
+and methods with @GuardedBy annotations](https://errorprone.info/bugpattern/GuardedBy). There is
+also an inspection 'Unguarded field access' in IntelliJ IDEA with the same effect.
 
 <a name="document-benign-race"></a>
 [#](#document-benign-race) Dc.8. If in a thread-safe class some **fields are accessed both from
