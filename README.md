@@ -18,7 +18,7 @@ Design
    - [Extension API call within a critical section](#non-open-call)
    - [Large critical section](#minimize-critical-sections)
    - [Waiting in a loop for some result](#justify-busy-wait)
-   - [`ThreadLocal`, especially when non-static](#threadlocal-design)
+   - [Non-static `ThreadLocal`](#threadlocal-design)
    - [`Thread.sleep()`](#no-sleep-schedule)
 
 Documentation
@@ -62,7 +62,7 @@ Race conditions
  ](#unsafe-concurrent-iteration)
  - [A non-thread-safe collection is *not* returned wrapped in `Collections.unmodifiable*()` from
  a getter in a thread-safe class?](#unsafe-concurrent-iteration)
- - [Non-trivial object is *not* returned from a getter in a thread-safe class?
+ - [Non-trivial mutable object is *not* returned from a getter in a thread-safe class?
  ](#concurrent-mutation-race)
  - [No separate getters to an atomically updated state?](#moving-state-race)
  - [No *check-then-act* race conditions (state used inside a critical section is read outside of
@@ -250,11 +250,14 @@ https://en.wikipedia.org/wiki/Staged_event-driven_architecture).
 **Instance confinement.** Objects of some root type encapsulate some complex hierarchical child
 state. Root objects are solitarily responsible for the safety of accesses and modifications to the
 child state from multiple threads. In other words, composed objects are synchronized rather than
-synchronized objects are composed. See [JCIP 4.2, 10.1.3, 10.1.4]. [TL.4](#tl-instance-chm) touches
-on instance confinement of thread-local state.
+synchronized objects are composed. See [JCIP 4.2, 10.1.3, 10.1.4].
+[RC.3](#unsafe-concurrent-iteration), [RC.4](#concurrent-mutation-race), and
+[RC.5](#moving-state-race) describe race conditions that could happen to instance-confined state.
+[TL.4](#tl-instance-chm) touches on instance confinement of thread-local state.
 
 **Thread/Task/Serial thread confinement.** Some state is made local to a thread using top-down
-pass-through parameters or `ThreadLocal`. See [JCIP 3.3]. Task confinement is a variation of the
+pass-through parameters or `ThreadLocal`. See [JCIP 3.3] and [the checklist section about
+ThreadLocals](#threadlocal). Task confinement is a variation of the
 idea of thread confinement that is used in conjunction with the divide-and-conquer pattern. It
 usually comes in the form of lambda-captured "context" parameters or fields in the per-thread task
 objects. Serial thread confinement is an extension of the idea of thread confinement for the
@@ -1395,7 +1398,9 @@ Future<Response> makeQuery(String query) {
   } catch (InvalidQueryException e) {
     // Explicit catch preserves the semantics of the original version of makeQuery() most closely.
     // If compile(query) is an expensive computation, it may be undesirable to schedule it to
-    // someBlockingIoExecutor() by simply moving compile(query) into the lambda below.
+    // someBlockingIoExecutor() by simply moving compile(query) into the lambda below because if
+    // this pool has more threads than CPUs then too many compilations might be started in parallel,
+    // leading to excessive switches between threads running CPU-bound tasks.
     // Another alternative is scheduling compile(query) to the common FJP:
     // CompletableFuture.supplyAsync(() -> compile(query))
     //   .thenApplyAsync(service::remoteCall, someBlockingIoExecutor());
