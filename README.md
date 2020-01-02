@@ -81,8 +81,8 @@ Race conditions
  ](#cache-invalidation-race)
  - [Iteration, Stream pipeline, or copying a `Collections.synchronized*()` collection is protected
  by the lock?](#synchronized-collection-iter)
- - [A synchronized collection is passed into `addAll()`, `removeAll()`, or `putAll()` under the
- lock?](#synchronized-collection-iter)
+ - [A synchronized collection is passed into `containsAll()`, `addAll()`, `removeAll()`, or
+ `putAll()` under the lock?](#synchronized-collection-iter)
 
 Testing
  - [Unit tests for thread-safe classes are multi-threaded?](#multi-threaded-tests)
@@ -725,7 +725,7 @@ https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Collectio
 for examples and details.
 
 This also applies to passing synchronized collections into:
- - Copy constructors of other collections, e. g. `new ArrayList<>(synchronizedList)`
+ - Copy constructors of other collections, e. g. `new ArrayList<>(synchronizedColl)`
  - Static factory methods of other collections, e. g. `List.copyOf()`, `Set.copyOf()`,
  `ImmutableMap.copyOf()`
  - Bulk methods on other collections:
