@@ -1529,6 +1529,30 @@ If a usage of `ThreadLocal` doesn't fall into either of these categories, it can
 There is an inspection "ThreadLocal field not declared static final" in IntelliJ IDEA which
 corresponds to this item.
 
+Static `ThreadLocal` fields could also be enforced using Checkstyle, using the following combination
+of checks:
+```xml
+<!-- Enforce 'private static final' order of modifiers -->
+<module name="ModifierOrder" />
+
+<!-- Ensure all ThreadLocal fields are private -->
+<!-- Requires https://github.com/sevntu-checkstyle/sevntu.checkstyle -->
+<module name="AvoidModifiersForTypesCheck">
+  <property name="forbiddenClassesRegexpProtected" value="ThreadLocal"/>
+  <property name="forbiddenClassesRegexpPublic" value="ThreadLocal"/>
+  <property name="forbiddenClassesRegexpPackagePrivate" value="ThreadLocal"/>
+</module>
+
+<!-- Prohibit any ThreadLocal field which is not private static final -->
+<module name="Regexp">
+  <property name="id" value="nonStaticThreadLocal"/>
+  <property name="format"
+    value="^\s*private\s+(ThreadLocal|static\s+ThreadLocal|final\s+ThreadLocal)"/>
+  <property name="illegalPattern" value="true"/>
+  <property name="message" value="Non-static final ThreadLocal"/>
+</module>
+```
+
 <a name="threadlocal-design"></a>
 [#](#threadlocal-design) TL.2. Doesn't a **`ThreadLocal` mask issues with the code, such as poor
 control flow or data flow design?** Is it possible to redesign the system without using
