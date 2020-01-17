@@ -85,7 +85,9 @@ Race conditions
  `putAll()` under the lock?](#synchronized-collection-iter)
 
 Testing
- - [Unit tests for thread-safe classes are multi-threaded?](#multi-threaded-tests)
+ - [Considered adding multi-threaded unit tests for a thread-safe classes?](#multi-threaded-tests)
+ - [What is the worst thing that might happen if the code has a concurrency bug?
+ ](#multi-threaded-tests)
  - [A shared `Random` instance is *not* used from concurrent test workers?](#concurrent-test-random)
  - [Concurrent test workers coordinate their start?](#coordinate-test-workers)
  - [There are more test threads than CPUs (if possible for the test)?](#test-workers-interleavings)
@@ -744,8 +746,16 @@ collections.
 ### Testing
 
 <a name="multi-threaded-tests"></a>
-[#](#multi-threaded-tests) T.1. **Are unit tests for thread-safe classes multi-threaded?**
-Single-threaded tests don't really test the thread safety and concurrency.
+[#](#multi-threaded-tests) T.1. **Was it considered to add multi-threaded unit tests for a
+thread-safe classes?** Single-threaded tests don't really test the thread safety and concurrency.
+Note that this question doesn't mean to indicate that there *must* be concurrent unit tests for
+every piece of concurrent code in the project because correct concurrent tests take a lot of effort
+to write and therefore they might often have low ROI.
+
+**What is the worst thing that might happen if this code has a concurrency bug?** is a useful
+question to inform the decision about writing concurrent tests. The consequences may range from a
+tiny, entirely undetectable memory leak, to storing corrupted data in a durable database or
+a security breach.
 
 <a name="concurrent-test-random"></a>
 [#](#concurrent-test-random) T.2. **Isn't a shared `java.util.Random` object used for data
