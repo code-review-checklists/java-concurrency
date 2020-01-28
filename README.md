@@ -93,6 +93,7 @@ Testing
  - [Concurrent test workers coordinate their start?](#coordinate-test-workers)
  - [There are more test threads than CPUs (if possible for the test)?](#test-workers-interleavings)
  - [Assertions in parallel threads and asynchronous code are handled properly?](#concurrent-assert)
+ - [Checked the result of a `CountDownLatch.await` or `Condition.await` method call?](#check-await)
 
 Locks
  - [Can use some concurrency utility instead of a lock with conditional `wait` (`await`) calls?
@@ -799,6 +800,21 @@ thread back to the main test thread and verify it in the end of the test, or to 
 [ConcurrentUnit](https://github.com/jhalterman/concurrentunit) library which takes over
 the boilerplate associated with the first approach.
 
+<a name="check-await"></a>
+[#](#check-await) T.6. **Is the result of [`CountDownLatch.await`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/CountDownLatch.html#await(long,java.util.concurrent.TimeUnit)),
+and [`Condition.await`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/locks/Condition.html#await(long,java.util.concurrent.TimeUnit))
+method calls checked?** The most frequent form of this mistake is forgetting to wrap
+`CountDownLatch.await()` into `assertTrue()` in tests, which makes the test to not actually verify
+that the production code works correctly. The absence of a check in production code might cause
+race conditions.
+
+It's possible to find these problems using static analysis, e. g. by configuring the "Result of
+method call ignored" inspection in IntelliJ IDEA to recognize `CountDownLatch.await` and
+`Condition.await`. They are not in the default set of checked methods, so they should be added
+manually to the set in the inspection configuration.
+
 <a name="replacing-locks-with-concurrency-utilities"></a>
 ### Locks
 
@@ -1318,7 +1334,7 @@ https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/L
 ) describing this problem.
 
 <a name="no-sleep-schedule"></a>
-[#](#no-sleep-schedule) TE.8. **A task or action is executed with a delay via a
+[#](#no-sleep-schedule) TE.8. Is it possible to **execute a task or an action with a delay via a
 [`ScheduledExecutorService`](
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/ScheduledExecutorService.html)
 rather than by calling `Thread.sleep()` before performing the work** or submitting the task to
@@ -1327,7 +1343,7 @@ threads, while the approach with `Thread.sleep` requires a dedicated thread for 
 action. Sleeping in the context of an unknown executor (if there is insufficient *concurrent access
 documentation* for the method, as per [Dc.1](#justify-document), or if this is a
 concurrency-agnostic library method) before submitting the task to an executor is also bad: the
-context executor may not tolerate blocking calls such as `Thread.sleep`, see
+context executor may not be well-suited for blocking calls such as `Thread.sleep`, see
 [TE.4](#fjp-no-blocking) for details.
 
 This item equally applies to scheduling one-shot and recurrent delayed actions, there are methods
