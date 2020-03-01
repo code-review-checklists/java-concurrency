@@ -1548,7 +1548,7 @@ timed blocking methods in classes from `java.util.concurrent.*` follow this conv
 <a name="external-interaction-schedule"></a>
 [#](#external-interaction-schedule) Tm.5. **Tasks that should happen at a certain system time, UTC
 time, or wall-clock time far in the future, or run periodically with a cadence expressed in terms of
-system/UTC/wall-clock time (rather than internal machines's CPU time) are *not* scheduled with
+system/UTC/wall-clock time (rather than internal machine's CPU time) are *not* scheduled with
 `ScheduledThreadPoolExecutor`?** `ScheduledThreadPoolExecutor` (this class is also behind all
 factory methods in `Executors` which return a `ScheduledExecutorService`) uses `System.nanoTime()`
 for timing intervals. [`nanoTime()` can drift against the system time and the UTC time.](
@@ -1564,7 +1564,7 @@ https://android.jlelse.eu/schedule-tasks-and-jobs-intelligently-in-android-e0b0d
 
 <a name="user-interaction-schedule"></a>
 [#](#user-interaction-schedule) Tm.6. On consumer devices (PCs, laptops, tables, phones),
-**`ScheduledThreadPoolExecutor` (or `Timer`) is * not* used for human interaction tasks or
+**`ScheduledThreadPoolExecutor` (or `Timer`) is *not* used for human interaction tasks or
 interactions between the device and a remote service?** Examples of human interaction tasks are
 alarms, notifications, timers, or task management. Examples of interactions between user's device
 and remote services are checking for new e-mails or messages, widget updates, or software updates.
