@@ -200,6 +200,10 @@ Time
  ](#time-going-backward)
  - [Units for a time variable are identified in the variable's name or via `TimeUnit`?](#time-units)
  - [Negative timeouts and delays are treated as zeros?](#treat-negative-timeout-as-zero)
+ - [Tasks connected to system time or UTC time are *not* scheduled using
+ `ScheduledThreadPoolExecutor`?](#external-interaction-schedule)
+ - [Human and external interactions on consumer devices are *not* scheduled using
+ `ScheduledThreadPoolExecutor`?](#user-interaction-schedule)
  
 `ThreadLocal`
  - [`ThreadLocal` can be `static final`?](#tl-static-final)
@@ -1349,6 +1353,10 @@ context executor may not be well-suited for blocking calls such as `Thread.sleep
 This item equally applies to scheduling one-shot and recurrent delayed actions, there are methods
 for both scenarios in `ScheduledExecutorService`.
 
+Be cautious, however, about scheduling tasks with affinity to system time or UTC time (e. g.
+beginning of each hour) using `ScheduledThreadPoolExecutor`: it can experience [unbounded clock
+drift](#external-interaction-schedule).
+
 ### Parallel Streams
 
 <a name="justify-parallel-stream-use"></a>
@@ -1536,6 +1544,37 @@ parameter next to a "timeout" parameter. This is the preferred option for public
 [#](#treat-negative-timeout-as-zero) Tm.4. **Do methods that have "timeout" and "delay" parameters
 treat negative arguments as zeros?** This is to obey the principle of least astonishment because all
 timed blocking methods in classes from `java.util.concurrent.*` follow this convention.
+
+<a name="external-interaction-schedule"></a>
+[#](#external-interaction-schedule) Tm.5. **Tasks that should happen at a certain system time, UTC
+time, or wall-clock time far in the future, or run periodically with a cadence expressed in terms of
+system/UTC/wall-clock time (rather than internal machines's CPU time) are *not* scheduled with
+`ScheduledThreadPoolExecutor`?** `ScheduledThreadPoolExecutor` (this class is also behind all
+factory methods in `Executors` which return a `ScheduledExecutorService`) uses `System.nanoTime()`
+for timing intervals. [`nanoTime()` can drift against the system time and the UTC time.](
+https://medium.com/@leventov/cronscheduler-a-reliable-java-scheduler-for-external-interactions-cb7ce4a4f2cd)
+
+[`CronScheduler`](https://github.com/TimeAndSpaceIO/CronScheduler) is a scheduling class designed
+to be proof against unbounded clock drift relative to UTC or system time for both one-shot or
+periodic tasks. See more detailed recommendations on [choosing between
+`ScheduledThreadPoolExecutor` and `CronScheduler`](
+https://medium.com/@leventov/cronscheduler-a-reliable-java-scheduler-for-external-interactions-cb7ce4a4f2cd#4926).
+On Android, use [Android-specific APIs](
+https://android.jlelse.eu/schedule-tasks-and-jobs-intelligently-in-android-e0b0d9201777).
+
+<a name="user-interaction-schedule"></a>
+[#](#user-interaction-schedule) Tm.6. On consumer devices (PCs, laptops, tables, phones),
+**`ScheduledThreadPoolExecutor` (or `Timer`) is * not* used for human interaction tasks or
+interactions between the device and a remote service?** Examples of human interaction tasks are
+alarms, notifications, timers, or task management. Examples of interactions between user's device
+and remote services are checking for new e-mails or messages, widget updates, or software updates.
+The reason for this is that [neither `ScheduledThreadPoolExecutor` nor `Timer` account for machine
+suspension](
+https://medium.com/@leventov/cronscheduler-a-reliable-java-scheduler-for-external-interactions-cb7ce4a4f2cd#dcfe)
+(such as sleep or hibernation mode). On Android, use [Android-specific APIs](
+https://android.jlelse.eu/schedule-tasks-and-jobs-intelligently-in-android-e0b0d9201777) instead.
+Consider [CronScheduler](https://github.com/TimeAndSpaceIO/CronScheduler) as a replacement for
+`ScheduledThreadPoolExecutor` in these cases for end-user JVM apps.
 
 ### `ThreadLocal`
 
