@@ -160,7 +160,7 @@ Threads and Executors
  ](#fjp-no-blocking)
  - [Can execute non-blocking computation in `FJP.commonPool()` instead of a custom thread pool?
  ](#use-common-fjp)
- - [`ExecutorService` is shutdown explicitly?](#explicit-shutdown)
+ - [`ExecutorService` is shut down explicitly?](#explicit-shutdown)
  - [Callback is attached to a `CompletableFuture` (`SettableFuture`) in non-async mode only if
  either:](#cf-beware-non-async)
    - the callback is lightweight and non-blocking; or
@@ -170,6 +170,10 @@ Threads and Executors
  - [Actions are delayed via a `ScheduledExecutorService` rather than `Thread.sleep()`?
  ](#no-sleep-schedule)
  - [Checked the result of `awaitTermination()`?](#check-await-termination)
+ - [`ExecutorService` is *not* assigned into a variable of `Executor`
+ type?](#executor-service-type-loss)
+ - [`ScheduledExecutorService` is *not* assigned into a variable of `ExecutorService`
+ type?](#unneeded-scheduled-executor-service)
 
 Parallel Streams
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
@@ -1296,7 +1300,7 @@ that specifies a non-default priority for threads or a custom exception handler 
 reusing threads of the common `ForkJoinPool`.
 
 <a name="explicit-shutdown"></a>
-[#](#explicit-shutdown) TE.6. Is every **`ExecutorService` treated as a resource and is shutdown
+[#](#explicit-shutdown) TE.6. Is every **`ExecutorService` treated as a resource and is shut down
 explicitly in the `close()` method of the containing object**, or in a try-with-resources of a
 try-finally statement? Failure to shutdown an `ExecutorService` might lead to a thread leak even if
 an `ExecutorService` object is no longer accessible, because some implementations (such as
@@ -1304,6 +1308,9 @@ an `ExecutorService` object is no longer accessible, because some implementation
 ever be called](
 https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#finalize()) by
 the JVM.
+
+To make explicit shutdown possible, first, [`ExecutorService` objects must not be assinged into
+variables and fields of `Executor` type](#executor-service-type-loss).
 
 <a name="cf-beware-non-async"></a>
 [#](#cf-beware-non-async) TE.7. Are **non-async stages attached to a `CompletableFuture` simple and
@@ -1398,6 +1405,32 @@ $x$.awaitTermination($y$, $z$);
 ```
 
 See also a similar item about [not checking the result of `CountDownLatch.await()`](#check-await).
+
+<a name="executor-service-type-loss"></a>
+[#](#executor-service-type-loss) TE.10. **Isn't `ExecutorService` assigned into a variable or a
+field of `Executor` type?** This makes it impossible to follow the practice of [explicit shutdown of
+`ExecutorService` objects](#explicit-shutdown).
+
+In IntelliJ IDEA, it's possible to find violations of this practice automatically using two patterns
+added to [Structural Search inspection](
+https://www.jetbrains.com/help/phpstorm/general-structural-search-inspection.html):
+ - "Java" pattern: `$x$ = $y$`, where the "Type" of `$x$` is `Executor` ("within type hierarchy"
+ flag is off) and the "Type" of `$y$` is `ExecutorService` ("within type hierarchy" flag is on).
+ - "Java - Class Member" pattern: `$Type$ $x$ = $y$;`, where the "Text" of `$Type$` is `Executor`
+ and the "Type" of `$y$` is `ExecutorService` (within type hierarchy).
+
+<a name="unneeded-scheduled-executor-service"></a>
+[#](#unneeded-scheduled-executor-service) TE.11. **Isn't `ScheduledExecutorService` assigned into
+a variable or a field of `ExecutorService` type?** This is wasteful because the primary Java
+implementation of `ScheduledExecutorService`, [`ScheduledThreadPoolExecutor`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/ScheduledThreadPoolExecutor.html)
+(it is returned from `Executors.newScheduledThreadPool()` and `newSingleThreadScheduledExecutor()`
+static factory methods) uses a `PriorityQueue` internally to manage tasks which incurs higher memory
+footprint and CPU overhead compared to non-scheduled `ExecutorService` implementations such as
+vanilla `ThreadPoolExecutor` or `ForkJoinPool`.
+
+This problem could be caught statically in a way similar to what is described in the [previous
+item](#executor-service-type-loss).
 
 ### Parallel Streams
 
