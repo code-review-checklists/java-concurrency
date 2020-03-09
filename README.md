@@ -93,7 +93,7 @@ Testing
  - [Concurrent test workers coordinate their start?](#coordinate-test-workers)
  - [There are more test threads than CPUs (if possible for the test)?](#test-workers-interleavings)
  - [Assertions in parallel threads and asynchronous code are handled properly?](#concurrent-assert)
- - [Checked the result of a `CountDownLatch.await` or `Condition.await` method call?](#check-await)
+ - [Checked the result of `CountDownLatch.await()`?](#check-await)
 
 Locks
  - [Can use some concurrency utility instead of a lock with conditional `wait` (`await`) calls?
@@ -169,6 +169,7 @@ Threads and Executors
  ](#cf-beware-non-async)
  - [Actions are delayed via a `ScheduledExecutorService` rather than `Thread.sleep()`?
  ](#no-sleep-schedule)
+ - [Checked the result of `awaitTermination()`?](#check-await-termination)
 
 Parallel Streams
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
@@ -408,7 +409,7 @@ See [JCIP 2.4] for more information about `@GuardedBy`.
 Usage of `@GuardedBy` is especially beneficial in conjunction with [Error Prone](
 https://errorprone.info/) tool which is able to [statically check for unguarded accesses to fields
 and methods with @GuardedBy annotations](https://errorprone.info/bugpattern/GuardedBy). There is
-also an inspection 'Unguarded field access' in IntelliJ IDEA with the same effect.
+also an inspection "Unguarded field access" in IntelliJ IDEA with the same effect.
 
 <a name="document-benign-race"></a>
 [#](#document-benign-race) Dc.8. If in a thread-safe class some **fields are accessed both from
@@ -805,19 +806,33 @@ thread back to the main test thread and verify it in the end of the test, or to 
 the boilerplate associated with the first approach.
 
 <a name="check-await"></a>
-[#](#check-await) T.6. **Is the result of [`CountDownLatch.await`](
-https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/CountDownLatch.html#await(long,java.util.concurrent.TimeUnit)),
-and [`Condition.await`](
-https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/locks/Condition.html#await(long,java.util.concurrent.TimeUnit))
+[#](#check-await) T.6. **Is the result of [`CountDownLatch.await()`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/CountDownLatch.html#await(long,java.util.concurrent.TimeUnit))
 method calls checked?** The most frequent form of this mistake is forgetting to wrap
 `CountDownLatch.await()` into `assertTrue()` in tests, which makes the test to not actually verify
 that the production code works correctly. The absence of a check in production code might cause
 race conditions.
 
+Apart from `CountDownLatch.await`, the other similar methods whose result must be checked are:
+ - [`Lock.tryLock()`](
+ https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/locks/Lock.html)
+ and `tryAcquire()` methods on [`Semaphore`](
+ https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/Semaphore.html)
+ and [`RateLimiter`](
+ https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/RateLimiter.html)
+ from Guava
+  - [`Monitor.enter(...)`](https://guava.dev/releases/28.1-jre/api/docs/com/google/common/util/concurrent/Monitor.html) in Guava
+ - [`Condition.await(...)`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/concurrent/locks/Condition.html#await(long,java.util.concurrent.TimeUnit))
+ - `awaitTermination()` and `awaitQuiescence()` methods. There is a [separate
+ item](#check-await-termination) about them.
+ - [`Process.waitFor(...)`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Process.html#waitFor(long,java.util.concurrent.TimeUnit))
+
 It's possible to find these problems using static analysis, e. g. by configuring the "Result of
-method call ignored" inspection in IntelliJ IDEA to recognize `CountDownLatch.await` and
-`Condition.await`. They are not in the default set of checked methods, so they should be added
-manually to the set in the inspection configuration.
+method call ignored" inspection in IntelliJ IDEA to recognize `Lock.tryLock()`,
+`CountDownLatch.await()` and other methods listed above. They are *not* in the default set of
+checked methods, so they should be added manually in the inspection configuration.
 
 <a name="replacing-locks-with-concurrency-utilities"></a>
 ### Locks
@@ -1356,6 +1371,33 @@ for both scenarios in `ScheduledExecutorService`.
 Be cautious, however, about scheduling tasks with affinity to system time or UTC time (e. g.
 beginning of each hour) using `ScheduledThreadPoolExecutor`: it can experience [unbounded clock
 drift](#external-interaction-schedule).
+
+<a name="check-await-termination"></a>
+[#](#check-await-termination) TE.9. **The result of `ExecutorService.awaitTermination()` method
+calls is checked?** Calling `awaitTermination()` (or `ForkJoinPool.awaitQuiescence()`) and not
+checking the result makes little sense. If it's actually important to await termination, e. g. to
+ensure a happens-before relation between the completion of the actions scheduled to the
+`ExecutorService` and some actions following the `awaitTermination()` call, or because termination
+means a release of some heavy resource and if the resource is not released there is a noticeable
+leak, then it is reasonable to at least check the result of `awaitTermination()` and log a warning
+if the result is negative, making debugging potential problems in the future easier. Otherwise, if
+awaiting termination really makes no difference, then it's better to not call `awaitTermination()`
+at all.
+
+Apart from `ExecutorService`, this item also applies to `awaitTermination()` methods on
+[`AsynchronousChannelGroup`](
+https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/nio/channels/AsynchronousChannelGroup.html)
+and [`io.grpc.ManagedChannel`](https://grpc.github.io/grpc-java/javadoc/io/grpc/ManagedChannel.html)
+from [gRPC-Java](https://github.com/grpc/grpc-java).
+
+It's possible to find omitted checks for `awaitTermination()` results using [Structural search
+inspection](https://www.jetbrains.com/help/phpstorm/general-structural-search-inspection.html) in
+IntelliJ IDEA with the following pattern:
+```
+$x$.awaitTermination($y$, $z$);
+```
+
+See also a similar item about [not checking the result of `CountDownLatch.await()`](#check-await).
 
 ### Parallel Streams
 
