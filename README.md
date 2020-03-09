@@ -116,7 +116,7 @@ Improving scalability
  - [Critical section is as small as possible?](#minimize-critical-sections)
  - [Can use `ConcurrentHashMap.compute()` or Guava's `Striped` for per-key locking?
  ](#increase-locking-granularity)
- - [Can replace blocking collection or a queue with a concurrent one?](#non-blocking-collections)
+ - [Can replace a blocking collection or a queue with a concurrent one?](#non-blocking-collections)
  - [Can use `ClassValue` instead of `ConcurrentHashMap<Class, ...>`?](#use-class-value)
  - [Considered `ReadWriteLock` (or `StampedLock`) instead of a simple lock?](#read-write-lock)
  - [`StampedLock` is used instead of `ReadWriteLock` when reentrancy is not needed?
@@ -126,6 +126,7 @@ Improving scalability
  - [Considered queues from JCTools instead of the standard concurrent queues?](#jctools)
  - [Considered Caffeine cache instead of other caching libraries?](#caffeine)
  - [Can apply speculation (optimistic concurrency) technique?](#speculation)
+ - [Considered `ForkJoinPool` instead of `newFixedThreadPool(N)`?](#fjp-instead-tpe)
 
 Lazy initialization and double-checked locking
  - [Lazy initialization of a field should be thread-safe?](#lazy-init-thread-safety)
@@ -1001,8 +1002,12 @@ blocking ones?** Here are some possible replacements within JDK:
  - `LinkedBlockingQueue` → `ConcurrentLinkedQueue`
  - `LinkedBlockingDeque` → `ConcurrentLinkedDeque`
 
-Also consider using queues from JCTools instead of concurrent queues from the JDK: see
+Consider also using queues from JCTools instead of concurrent queues from the JDK: see
 [Sc.8](#jctools).
+
+See also an item about using [`ForkJoinPool` instead of `newFixedThreadPool(N)`](#fjp-instead-tpe)
+for high-traffic executor services, which internally amounts to replacing a single blocking queue of
+tasks inside `ThreadPoolExecutor` with multiple non-blocking queues inside `ForkJoinPool`.
 
 <a name="use-class-value"></a>
 [#](#use-class-value) Sc.4. Is it possible to **use [`ClassValue`](
@@ -1076,6 +1081,21 @@ This principle is used internally in many scalable concurrent data structures, i
 
 See also the article about [Optimistic concurrency control](
 https://en.wikipedia.org/wiki/Optimistic_concurrency_control) on Wikipedia.
+
+<a name="fjp-instead-tpe"></a>
+[#](#fjp-instead-tpe) Sc.11. Was it considered to **use a `ForkJoinPool` instead of a
+`ThreadPoolExecutor` with N threads** (e. g. returned from one of `Executors.newFixedThreadPool()`
+methods), for thread pools on which a lot of small tasks are executed? `ForkJoinPool` is more
+scalable because internally it maintains one queue per each worker thread, whereas
+`ThreadPoolExecutor` has a single, blocking task queue shared among all threads.
+
+`ForkJoinPool` implements `ExecutorService` as well as `ThreadPoolExecutor`, so could often be a
+drop in replacement. For caveats and details, see [this](
+http://cs.oswego.edu/pipermail/concurrency-interest/2020-January/017058.html) and [this](
+http://cs.oswego.edu/pipermail/concurrency-interest/2020-February/017061.html) messages by Doug Lea.
+
+See also items about [using non-blocking collections (including queues) instead of blocking
+ones](#non-blocking-collections) and about [using JCTools queues](#jctools).
 
 <a name="lazy-init"></a>
 ### Lazy initialization and double-checked locking
