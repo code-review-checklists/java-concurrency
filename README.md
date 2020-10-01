@@ -1,6 +1,6 @@
 
 # Code Review Checklist: Java Concurrency
-
+//Read the file completely to understand all the things
 Design
  - [Concurrency is rationalized?](#rationalize)
  - [Can use patterns to simplify concurrency?](#use-patterns)
