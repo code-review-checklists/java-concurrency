@@ -1,7 +1,7 @@
 
 # Code Review Checklist: Java Concurrency
 
-Design
+<strong>Design</strong>
  - [Concurrency is rationalized?](#rationalize)
  - [Can use patterns to simplify concurrency?](#use-patterns)
    - Immutability/Snapshotting
@@ -21,7 +21,7 @@ Design
    - [Non-static `ThreadLocal`](#threadlocal-design)
    - [`Thread.sleep()`](#no-sleep-schedule)
 
-Documentation
+<strong>Documentation</strong>
  - [Thread safety is justified in comments?](#justify-document)
  - [Class (method, field) has concurrent access documentation?](#justify-document)
  - [Threading model of a subsystem (class) is described?](#threading-flow-model)
@@ -37,7 +37,7 @@ Documentation
  - [Each field that is neither `volatile` nor annotated with `@GuardedBy` has a comment?
  ](#plain-field)
 
-Insufficient synchronization
+<strong>Insufficient synchronization</strong>
  - [Static methods and fields are thread-safe?](#static-thread-safe)
  - [Thread *doesn't* wait in a loop for a non-volatile field to be updated by another thread?
  ](#non-volatile-visibility)
@@ -47,13 +47,13 @@ Insufficient synchronization
  ](#server-framework-sync)
  - [Calls to `DateFormat.parse()` and `format()` are synchronized?](#dateformat)
 
-Excessive thread safety
+<strong>Excessive thread safety</strong>
  - [No "extra" (pseudo) thread safety?](#pseudo-safety)
  - [No atomics on which only `get()` and `set()` are called?](#redundant-atomics)
  - [Class (method) needs to be thread-safe?](#unneeded-thread-safety)
  - [`ReentrantLock` (`ReentrantReadWriteLock`, `Semaphore`) needs to be fair?](#unneeded-fairness)
 
-Race conditions
+<strong>Race conditions</strong>
  - [No `put()` or `remove()` calls on a `ConcurrentMap` (or Cache) after `get()` or
  `containsKey()`?](#chm-race)
  - [No point accesses to a non-thread-safe collection outside of critical sections?
@@ -84,7 +84,7 @@ Race conditions
  - [A synchronized collection is passed into `containsAll()`, `addAll()`, `removeAll()`, or
  `putAll()` under the lock?](#synchronized-collection-iter)
 
-Testing
+<strong>Testing</strong>
  - [Considered adding multi-threaded unit tests for a thread-safe class or method?
  ](#multi-threaded-tests)
  - [What is the worst thing that might happen if the code has a concurrency bug?
@@ -95,7 +95,7 @@ Testing
  - [Assertions in parallel threads and asynchronous code are handled properly?](#concurrent-assert)
  - [Checked the result of `CountDownLatch.await()`?](#check-await)
 
-Locks
+<strong>Locks</strong>
  - [Can use some concurrency utility instead of a lock with conditional `wait` (`await`) calls?
  ](#avoid-wait-notify)
  - [Can use Guava’s `Monitor` instead of a lock with conditional `wait` (`await`) calls?
@@ -104,7 +104,7 @@ Locks
  - [`lock()` is called outside of `try {}`? No statements between `lock()` and `try {}`?
  ](#lock-unlock)
 
-Avoiding deadlocks
+<strong>Avoiding deadlocks</strong>
  - [Can avoid nested critical sections?](#avoid-nested-critical-sections)
  - [Locking order for nested critical sections is documented?](#document-locking-order)
  - [Dynamically determined locks for nested critical sections are ordered?](#dynamic-lock-ordering)
@@ -112,7 +112,7 @@ Avoiding deadlocks
  - [No calls to `ConcurrentHashMap`'s methods (incl. `get()`) in `compute()`-like lambdas on the
  same map?](#chm-nested-calls)
 
-Improving scalability
+<strong>Improving scalability</strong>
  - [Critical section is as small as possible?](#minimize-critical-sections)
  - [Can use `ConcurrentHashMap.compute()` or Guava's `Striped` for per-key locking?
  ](#increase-locking-granularity)
@@ -128,7 +128,7 @@ Improving scalability
  - [Can apply speculation (optimistic concurrency) technique?](#speculation)
  - [Considered `ForkJoinPool` instead of `newFixedThreadPool(N)`?](#fjp-instead-tpe)
 
-Lazy initialization and double-checked locking
+<strong>Lazy initialization and double-checked locking</strong>
  - [Lazy initialization of a field should be thread-safe?](#lazy-init-thread-safety)
  - [Considered double-checked locking for a lazy initialization to improve performance?
  ](#use-dcl)
@@ -140,7 +140,7 @@ Lazy initialization and double-checked locking
  - [Holder class idiom is used for lazy static fields rather than double-checked locking?
  ](#no-static-dcl)
 
-Non-blocking and partially blocking code
+<strong>Non-blocking and partially blocking codec</strong>
  - [Non-blocking code has enough comments to make line-by-line checking as easy as possible?
  ](#check-non-blocking-code)
  - [Can use immutable POJO + compare-and-swap operations to simplify non-blocking code?
@@ -150,7 +150,7 @@ Non-blocking and partially blocking code
  - [Busy waiting (spin loop), all calls to `Thread.yield()` and `Thread.onSpinWait()` are justified?
  ](#justify-busy-wait)
 
-Threads and Executors
+<strong>Threads and Executors</strong>
  - [Thread is named?](#name-threads)
  - [Can use `ExecutorService` instead of creating a new `Thread` each time some method is called?
  ](#reuse-threads)
@@ -176,18 +176,18 @@ Threads and Executors
  - [`ScheduledExecutorService` is *not* assigned into a variable of `ExecutorService`
  type?](#unneeded-scheduled-executor-service)
 
-Parallel Streams
+<strong>Parallel Streams</strong>
  - [Parallel Stream computation takes more than 100us in total?](#justify-parallel-stream-use)
  - [Comment before a parallel Streams pipeline explains how it takes more than 100us in total?
  ](#justify-parallel-stream-use)
 
-Futures
+<strong>Futures</strong>
  - [Non-blocking computation needs to be decorated as a `Future`?](#unneeded-future)
  - [Method returning a `Future` doesn't block?](#future-method-no-blocking)
  - [In a method returning a `Future`, considered wrapping an "expected" exception as a failed
  `Future`?](#future-method-failure-paths)
  
-Thread interruption and `Future` cancellation
+<strong>Thread interruption and `Future` cancellation</strong>
  - [Interruption status is restored before wrapping `InterruptedException` with another exception?
  ](#restore-interruption)
  - [`InterruptedException` is swallowed only in the following kinds of methods:
@@ -200,7 +200,7 @@ Thread interruption and `Future` cancellation
  - [`Future` is canceled upon catching an `InterruptedException` or a `TimeoutException` on `get()`?
  ](#cancel-future)
 
-Time
+<strong>Time</strong>
  - [`nanoTime()` values are compared in an overflow-aware manner?](#nano-time-overflow)
  - [`currentTimeMillis()` is *not* used to measure time intervals and timeouts?
  ](#time-going-backward)
@@ -220,7 +220,7 @@ Time
  - [Considered replacing a non-static `ThreadLocal` with an instance-confined `Map<Thread, ...>`?
  ](#tl-instance-chm)
 
-Thread safety of Cleaners and native code
+<strong>Thread safety of Cleaners and native code</strong>
  - [`close()` is concurrently idempotent in a class with a `Cleaner` or `finalize()`?
  ](#thread-safe-close-with-cleaner)
  - [Method accessing native state calls `reachabilityFence()` in a class with a `Cleaner` or
